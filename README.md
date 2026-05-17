@@ -2,7 +2,7 @@
 
 A suite of quality-of-life tools designed for Corporeal Beast boosting and multi-logging.
 
-![Corp Boosting QOL Demo](https://i.imgur.com/jKGcLB7.gif)
+![Corp Boosting QOL Demo](https://i.imgur.com/OwZxHSZ.gif)
 
 ## Features
 
@@ -42,3 +42,4 @@ Tracks charges for the three items used by splasher accounts. All values persist
 - Blood fury, tome, serp helm, and toxic staff charge counts all persist across logouts per account.
 - Supply warnings only update when the bank is opened.
 - Serp helm and toxic staff both show the same "Scales: X" message on Check — the plugin distinguishes them by which item you right-clicked.
+- - Warning overlay background colour is fully configurable via the Corp Cave settings panel.
