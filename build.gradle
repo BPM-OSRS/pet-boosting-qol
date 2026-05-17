@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group = 'com.corpidleutils'
+group = 'com.corpboostingqol'
 version = '1.0.0'
 
 repositories {
@@ -13,26 +13,9 @@ repositories {
 dependencies {
     compileOnly 'net.runelite:client:1.12.26.3'
     compileOnly 'com.google.inject:guice:4.1.0:no_aop'
-    runtimeOnly 'net.runelite:client:1.12.26.3'
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.release = 11
-}
-
-task runClient(type: JavaExec) {
-    classpath = configurations.runtimeClasspath + files(jar)
-    mainClass = 'net.runelite.client.RuneLite'
-    jvmArgs = [
-            '-ea',
-            '--add-opens=java.base/java.lang=ALL-UNNAMED',
-            '--add-opens=java.desktop/sun.awt=ALL-UNNAMED'
-    ]
-    args '--developer-mode'
-    dependsOn jar
-    doFirst {
-        println "Classpath:"
-        classpath.each { println it }
-    }
 }
