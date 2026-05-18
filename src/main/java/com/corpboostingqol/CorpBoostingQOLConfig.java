@@ -268,7 +268,7 @@ public interface CorpBoostingQOLConfig extends Config
 	)
 	default boolean tomeOfWaterEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -296,7 +296,7 @@ public interface CorpBoostingQOLConfig extends Config
 	)
 	default boolean serpHelmEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
@@ -324,7 +324,7 @@ public interface CorpBoostingQOLConfig extends Config
 	)
 	default boolean toxicStaffEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(

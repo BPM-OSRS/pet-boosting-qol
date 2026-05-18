@@ -17,15 +17,11 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 
 public class CorpBoostingQOLWarningOverlay extends Overlay
 {
-	// Matches RuneLite's notification panel aesthetic:
-	// near-black semi-transparent background, yellow for warnings, red for actionable errors.
-	private static final Color BOX_BG        = new Color(0, 0, 0, 200);
-	private static final Color BORDER_COLOR  = new Color(30, 30, 30, 255);
 	private static final Color TEXT_COLOR = Color.WHITE;
 
-	private static final int   BOX_WIDTH  = 280;
-	private static final int   ROW_HEIGHT = 26;
-	private static final int   PADDING_X  = 10;
+	private static final int   BOX_WIDTH  = 380;
+	private static final int   ROW_HEIGHT = 36;
+	private static final int   PADDING_X  = 12;
 	private static final int   ARC        = 4;
 
 	private final CorpBoostingQOLPlugin plugin;
@@ -47,12 +43,11 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-		// Each entry: { text, "warn" | "critical" }
 		List<String[]> rows = new ArrayList<>();
 
 		if (plugin.inCorpCave && config.lunarsEnabled() && plugin.lunarsWarn)
 		{
-			rows.add(new String[]{"NOT ON LUNAR SPELLBOOK", "critical"});
+			rows.add(new String[]{"NOT ON LUNAR SPELLBOOK", "warn"});
 		}
 
 		if (plugin.inCorpCave && config.vengEnabled() && plugin.vengReady)
@@ -69,7 +64,7 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		{
 			if (plugin.bloodFuryNoData || plugin.bloodFuryCharges == -1)
 			{
-				rows.add(new String[]{"Blood Fury: inspect amulet", "critical"});
+				rows.add(new String[]{"Blood Fury: inspect amulet", "warn"});
 			}
 			else if (plugin.bloodFuryWarn)
 			{
@@ -94,7 +89,7 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		{
 			if (plugin.tomeOfWaterNoData)
 			{
-				rows.add(new String[]{"Tome of Water: check tome", "critical"});
+				rows.add(new String[]{"Tome of Water: check tome", "warn"});
 			}
 			else if (plugin.tomeOfWaterWarn)
 			{
@@ -106,7 +101,7 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		{
 			if (plugin.serpHelmNoData)
 			{
-				rows.add(new String[]{"Serp Helm: check helm", "critical"});
+				rows.add(new String[]{"Serp Helm: check helm", "warn"});
 			}
 			else if (plugin.serpHelmWarn)
 			{
@@ -118,7 +113,7 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		{
 			if (plugin.toxicStaffNoData)
 			{
-				rows.add(new String[]{"Toxic Staff: check staff", "critical"});
+				rows.add(new String[]{"Toxic Staff: check staff", "warn"});
 			}
 			else if (plugin.toxicStaffWarn)
 			{
@@ -131,16 +126,16 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 			return null;
 		}
 
-		Font font = FontManager.getRunescapeBoldFont().deriveFont(Font.PLAIN, 16f);
+		Font font = FontManager.getRunescapeBoldFont().deriveFont(Font.BOLD, 24f);
 		g.setFont(font);
 		FontMetrics fm = g.getFontMetrics();
 
 		int totalHeight = rows.size() * ROW_HEIGHT;
 
-		// Background + border
-		g.setColor(BOX_BG);
+		// Background + border using config color
+		g.setColor(config.warningOverlayColor());
 		g.fillRoundRect(0, 0, BOX_WIDTH, totalHeight, ARC, ARC);
-		g.setColor(BORDER_COLOR);
+		g.setColor(config.warningOverlayColor().darker());
 		g.drawRoundRect(0, 0, BOX_WIDTH - 1, totalHeight - 1, ARC, ARC);
 
 		for (int i = 0; i < rows.size(); i++)
@@ -151,13 +146,13 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 			// Divider between rows
 			if (i > 0)
 			{
-				g.setColor(BORDER_COLOR);
+				g.setColor(config.warningOverlayColor().darker());
 				g.drawLine(0, rowY, BOX_WIDTH, rowY);
 			}
 
 			// Truncate with ellipsis if text overflows box width
 			int maxWidth = BOX_WIDTH - PADDING_X * 2;
-			while (fm.stringWidth(text) > maxWidth && text.length() > 1)
+			while (fm.stringWidth(text) > maxWidth && text.length() > 4)
 			{
 				text = text.substring(0, text.length() - 4) + "...";
 			}
