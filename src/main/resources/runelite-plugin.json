@@ -1,7 +1,7 @@
 {
   "displayName": "Corp Boosting QOL",
   "author": "BPM-OSRS",
-  "description": "Quality-of-life tools for Corporeal Beast boosting. Combat overlay, vengeance/lunars/quick prayer indicators, movement lock, blood fury/rune pouch/supply tracking, and splasher charge tracking for Tome of Water, Serpentine Helm, and Toxic Staff of the Dead.",
-  "tags": ["corp", "corporeal beast", "vengeance", "combat", "overlay", "blood fury", "rune pouch", "boosting", "splasher", "tome of water", "serp helm", "toxic staff"],
+  "description": "QOL tools for Corp boosting. Unified alert overlay for combat idle, vengeance, quick prayer, and lunar spellbook. Blood fury, rune pouch, supply, house tab, and splasher charge tracking — all with logout persistence.",
+  "tags": ["corp", "corporeal beast", "vengeance", "combat", "overlay", "blood fury", "rune pouch", "boosting", "splasher", "tome of water", "serp helm", "toxic staff", "zulrah"],
   "plugins": "com.corpboostingqol.CorpBoostingQOLPlugin"
 }

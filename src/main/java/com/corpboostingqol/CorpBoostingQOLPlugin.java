@@ -50,7 +50,8 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private static final int SPELLBOOK_VARBIT    = 4070;
 	private static final int LUNAR_SPELLBOOK     = 2;
 
-	// Water Strike cast animation.
+	// Water Strike cast animation — this is the Toxic Staff of the Dead cast animation (11423),
+	// distinct from the standard Water Strike animation (711). Used for splasher tome tracking.
 	private static final int WATER_STRIKE_ANIM  = 11423;
 	private static final int NOX_HALBERD_ANIM   = 440; // slash/swipe style
 	private static final int NOX_HALBERD_ANIM2  = 428; // jab/stab style
@@ -72,7 +73,10 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private static final int ITEM_SERP_HELM_MAGMA    = 13197;
 	private static final int ITEM_SERP_HELM_TANZANITE = 13199;
 	private static final int ITEM_TOXIC_STAFF        = 12904; // toxic staff of the dead (charged)
+	private static final int ITEM_TOXIC_STAFF_DMM    = 33036; // DMM toxic staff
 	private static final int ITEM_TOME_OF_WATER      = 25616; // charged tome of water
+	private static final int ITEM_HOUSE_TAB          = 8013;
+	private static final int ITEM_ZULRAH_SCALES      = 12934;
 
 	// Equipment panel widget IDs for the Check menu option (param1 in MenuOptionClicked).
 	// These are the packed widget IDs for interface 387 (equipment panel):
@@ -85,6 +89,8 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 	private static final Pattern BLOOD_FURY_CHECK_PATTERN =
 			Pattern.compile("Your Amulet of blood fury will work for ([\\d,]+) more hits\\.");
+	private static final Pattern BLOOD_FURY_RECHARGE_PATTERN =
+			Pattern.compile("It will now work for ([\\d,]+) more hits\\.");
 
 	// Case-insensitive, trailing punctuation optional — covers likely game message variants.
 	// "Your tome currently holds 3,520 charges." (exact game message)
@@ -99,6 +105,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private static final String TOME_KEY_PREFIX       = "tome_charges_";
 	private static final String SERP_KEY_PREFIX       = "serp_charges_";
 	private static final String STAFF_KEY_PREFIX      = "staff_charges_";
+	private static final String SUPPLY_KEY_PREFIX     = "supply_count_";
+	private static final String HOUSE_TAB_KEY_PREFIX  = "housetab_count_";
+	private static final String SCALES_KEY_PREFIX     = "scales_count_";
 
 	@Inject
 	private Client client;
@@ -111,6 +120,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 	@Inject
 	private CorpBoostingQOLWarningOverlay warningOverlay;
+
+	@Inject
+	private CorpBoostingQOLAlertOverlay alertOverlay;
 
 	@Inject
 	private CorpBoostingQOLConfig config;
@@ -134,6 +146,15 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 	boolean supplyWarn  = false;
 	int     supplyCount = -1;
+	private int cachedBankSupplyCount = -1; // last known bank quantity; survives bank close
+
+	boolean houseTabWarn  = false;
+	int     houseTabCount = -1;
+	private int cachedBankHouseTabCount = -1;
+
+	boolean zulrahScalesWarn  = false;
+	int     zulrahScalesCount = -1;
+	private int cachedBankScalesCount = -1;
 
 	boolean quickPrayerWarn = false;
 
@@ -158,6 +179,10 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private boolean isHotkeyHeld      = false;
 	private HotkeyListener hotkeyListener;
 
+	private boolean supplyLoaded            = false;
+	private boolean houseTabLoaded          = false;
+	private boolean scalesLoaded            = false;
+
 	private boolean splasherInCombat        = false;
 	private int     splasherIdleTicks       = 0;
 	private int     serpDrainTicks          = 0;
@@ -165,6 +190,7 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private boolean serpCombatEnterDrained  = false;
 	private boolean staffCombatEnterDrained = false;
 	private boolean splasherLoaded          = false;
+	private boolean bankDataLoaded          = false;
 
 	private enum ScalesItem { NONE, SERP, STAFF }
 	private ScalesItem pendingScalesCheck = ScalesItem.NONE;
@@ -174,6 +200,7 @@ public class CorpBoostingQOLPlugin extends Plugin
 	{
 		overlayManager.add(combatOverlay);
 		overlayManager.add(warningOverlay);
+		overlayManager.add(alertOverlay);
 
 		hotkeyListener = new HotkeyListener(() -> config.movementHoldKey())
 		{
@@ -186,6 +213,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 		loadTomeCharges();
 		loadSerpCharges();
 		loadStaffCharges();
+		loadSupplyCount();
+		loadHouseTabCount();
+		loadScalesCount();
 	}
 
 	@Override
@@ -193,6 +223,7 @@ public class CorpBoostingQOLPlugin extends Plugin
 	{
 		overlayManager.remove(combatOverlay);
 		overlayManager.remove(warningOverlay);
+		overlayManager.remove(alertOverlay);
 		keyManager.unregisterKeyListener(hotkeyListener);
 		hotkeyListener = null;
 		resetState();
@@ -214,12 +245,19 @@ public class CorpBoostingQOLPlugin extends Plugin
 		// bloodFuryNoData || bloodFuryCharges == -1 still shows the "inspect" prompt
 		// because charges are -1. Setting noData=false avoids a double-trigger on startup
 		// before loadBloodFuryCharges() has had a chance to run.
-		bloodFuryNoData   = false;
+		bloodFuryNoData   = true;
 		bloodFuryLoaded   = false;
 
 		runePouchWarnings = new ArrayList<>();
 		supplyWarn        = false;
 		supplyCount       = -1;
+		cachedBankSupplyCount   = -1;
+		houseTabWarn      = false;
+		houseTabCount     = -1;
+		cachedBankHouseTabCount = -1;
+		zulrahScalesWarn  = false;
+		zulrahScalesCount = -1;
+		cachedBankScalesCount   = -1;
 		quickPrayerWarn   = false;
 		runePouchDirty    = false;
 		isHotkeyHeld      = false;
@@ -240,6 +278,10 @@ public class CorpBoostingQOLPlugin extends Plugin
 		serpCombatEnterDrained  = false;
 		staffCombatEnterDrained = false;
 		splasherLoaded          = false;
+		bankDataLoaded          = false;
+		supplyLoaded            = false;
+		houseTabLoaded          = false;
+		scalesLoaded            = false;
 		pendingScalesCheck      = ScalesItem.NONE;
 	}
 
@@ -311,6 +353,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 				loadTomeCharges();
 				loadSerpCharges();
 				loadStaffCharges();
+				loadSupplyCount();
+				loadHouseTabCount();
+				loadScalesCount();
 				break;
 			case LOGIN_SCREEN:
 			case HOPPING:
@@ -347,6 +392,33 @@ public class CorpBoostingQOLPlugin extends Plugin
 				splasherLoaded = true;
 			}
 		}
+		if (!supplyLoaded)
+		{
+			Player local = client.getLocalPlayer();
+			if (local != null && local.getName() != null)
+			{
+				loadSupplyCount();
+				supplyLoaded = true;
+			}
+		}
+		if (!houseTabLoaded)
+		{
+			Player local = client.getLocalPlayer();
+			if (local != null && local.getName() != null)
+			{
+				loadHouseTabCount();
+				houseTabLoaded = true;
+			}
+		}
+		if (!scalesLoaded)
+		{
+			Player local = client.getLocalPlayer();
+			if (local != null && local.getName() != null)
+			{
+				loadScalesCount();
+				scalesLoaded = true;
+			}
+		}
 
 		// Veng cooldown
 		if (vengCooldownTicks > 0) vengCooldownTicks--;
@@ -355,6 +427,13 @@ public class CorpBoostingQOLPlugin extends Plugin
 		// Corp combat idle
 		if (combatIdleTicks > 0) combatIdleTicks--;
 		else inCombat = false;
+
+		// Quick prayer warning — re-evaluate every tick inside corp cave so it
+		// appears immediately on first teleport in (not only after a varbit change).
+		if (config.quickPrayerEnabled())
+		{
+			quickPrayerWarn = client.getVarbitValue(Varbits.QUICK_PRAYER) == 0;
+		}
 
 		// Lunars warning — only inside corp cave
 		lunarsWarn = inCorpCave && config.lunarsEnabled()
@@ -416,6 +495,8 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 		if (id == Varbits.QUICK_PRAYER && config.quickPrayerEnabled())
 		{
+			// onGameTick handles this every tick; this fires immediately on change
+			// for responsiveness between ticks.
 			quickPrayerWarn = event.getValue() == 0;
 		}
 
@@ -436,9 +517,26 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		if (config.suppliesEnabled() && event.getContainerId() == InventoryID.BANK.getId())
+		int containerId = event.getContainerId();
+
+		if (containerId == InventoryID.BANK.getId())
 		{
-			checkSupplies();
+			// Only update when bank actually has items — fires with empty container on close
+			ItemContainer bank = event.getItemContainer();
+			if (bank != null && bank.getItems().length > 0)
+			{
+				bankDataLoaded = true;
+				if (config.suppliesEnabled()) checkSupplies();
+				if (config.houseTabEnabled()) checkHouseTabs();
+				if (config.zulrahScalesEnabled()) checkZulrahScales();
+			}
+		}
+
+		if (containerId == InventoryID.INVENTORY.getId() && bankDataLoaded)
+		{
+			if (config.suppliesEnabled()) checkSupplies();
+			if (config.houseTabEnabled()) checkHouseTabs();
+			if (config.zulrahScalesEnabled()) checkZulrahScales();
 		}
 	}
 
@@ -559,7 +657,8 @@ public class CorpBoostingQOLPlugin extends Plugin
 		ChatMessageType type = event.getType();
 		if (type != ChatMessageType.SPAM
 				&& type != ChatMessageType.GAMEMESSAGE
-				&& type != ChatMessageType.PLAYERRELATED)
+				&& type != ChatMessageType.PLAYERRELATED
+				&& type != ChatMessageType.MESBOX)
 		{
 			return;
 		}
@@ -577,9 +676,21 @@ public class CorpBoostingQOLPlugin extends Plugin
 					bloodFuryWarn   = bloodFuryCharges < config.bloodFuryThreshold();
 					bloodFuryNoData = false;
 				}
-				catch (NumberFormatException e)
+				catch (NumberFormatException e) {}
+			}
+
+			// Blood shard recharge: "It will now work for X more hits."
+			Matcher rm = BLOOD_FURY_RECHARGE_PATTERN.matcher(msg);
+			if (rm.find())
+			{
+				try
 				{
+					bloodFuryCharges = Integer.parseInt(rm.group(1).replace(",", ""));
+					saveBloodFuryCharges();
+					bloodFuryWarn   = bloodFuryCharges < config.bloodFuryThreshold();
+					bloodFuryNoData = false;
 				}
+				catch (NumberFormatException e) {}
 			}
 		}
 
@@ -727,7 +838,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 		ItemContainer equip = client.getItemContainer(InventoryID.EQUIPMENT);
 		if (equip == null) return false;
 		Item weapon = equip.getItem(EquipmentInventorySlot.WEAPON.getSlotIdx());
-		return weapon != null && weapon.getId() == ITEM_TOXIC_STAFF;
+		if (weapon == null) return false;
+		int id = weapon.getId();
+		return id == ITEM_TOXIC_STAFF || id == ITEM_TOXIC_STAFF_DMM;
 	}
 
 	private boolean tomeOfWaterEquipped()
@@ -786,17 +899,132 @@ public class CorpBoostingQOLPlugin extends Plugin
 			supplyWarn = false;
 			return;
 		}
-		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
-		if (bank == null) return;
-
 		int targetId = config.supplyType().itemId;
-		int count    = 0;
-		for (Item item : bank.getItems())
+		int notedId  = targetId + 1; // noted form is always itemId + 1 in OSRS
+
+		// Update cached bank count only when we actually have bank data.
+		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
+		if (bank != null && bank.getItems().length > 0)
 		{
-			if (item.getId() == targetId) count += item.getQuantity();
+			int bankCount = 0;
+			for (Item item : bank.getItems())
+			{
+				if (item.getId() == targetId || item.getId() == notedId)
+					bankCount += item.getQuantity();
+			}
+			cachedBankSupplyCount = bankCount;
 		}
-		supplyCount = count;
-		supplyWarn  = count < config.supplyThreshold();
+
+		// Count inventory: both unnoted and noted forms are valid in inventory.
+		int inventoryCount = 0;
+		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
+		if (inventory != null)
+		{
+			for (Item item : inventory.getItems())
+			{
+				if (item.getId() == targetId || item.getId() == notedId)
+					inventoryCount += item.getQuantity();
+			}
+		}
+
+		// Total = cached bank + current inventory.
+		// If bank has not been loaded this session, preserve the persisted count and only
+		// warn based on inventory alone — avoids overwriting the saved total with a partial value.
+		int bankPart = Math.max(0, cachedBankSupplyCount);
+		if (bankDataLoaded)
+		{
+			supplyCount = bankPart + inventoryCount;
+			supplyWarn  = supplyCount < config.supplyThreshold();
+			saveSupplyCount();
+		}
+		else
+		{
+			supplyWarn = inventoryCount < config.supplyThreshold();
+		}
+	}
+
+	private void checkHouseTabs() {
+		if (!config.houseTabEnabled()) {
+			houseTabWarn = false;
+			return;
+		}
+		int notedId = ITEM_HOUSE_TAB + 1;
+
+		// Update cached bank count only when we actually have live bank data.
+		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
+		if (bank != null && bank.getItems().length > 0) {
+			int bankCount = 0;
+			for (Item item : bank.getItems()) {
+				if (item.getId() == ITEM_HOUSE_TAB || item.getId() == notedId)
+					bankCount += item.getQuantity();
+			}
+			cachedBankHouseTabCount = bankCount;
+		}
+
+		int inventoryCount = 0;
+		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
+		if (inventory != null) {
+			for (Item item : inventory.getItems()) {
+				if (item.getId() == ITEM_HOUSE_TAB || item.getId() == notedId)
+					inventoryCount += item.getQuantity();
+			}
+		}
+
+		int bankPart = Math.max(0, cachedBankHouseTabCount);
+		if (bankDataLoaded)
+		{
+			houseTabCount = bankPart + inventoryCount;
+			houseTabWarn  = houseTabCount < config.houseTabThreshold();
+			saveHouseTabCount();
+		}
+		else
+		{
+			houseTabWarn = inventoryCount < config.houseTabThreshold();
+		}
+	}
+	private void checkZulrahScales()
+	{
+		if (!config.zulrahScalesEnabled())
+		{
+			zulrahScalesWarn = false;
+			return;
+		}
+
+		// Zulrah's scales are stackable — they have no noted form, so only check ITEM_ZULRAH_SCALES.
+		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
+		if (bank != null && bank.getItems().length > 0)
+		{
+			int bankCount = 0;
+			for (Item item : bank.getItems())
+			{
+				if (item.getId() == ITEM_ZULRAH_SCALES)
+					bankCount += item.getQuantity();
+			}
+			cachedBankScalesCount = bankCount;
+		}
+
+		int inventoryCount = 0;
+		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
+		if (inventory != null)
+		{
+			for (Item item : inventory.getItems())
+			{
+				if (item.getId() == ITEM_ZULRAH_SCALES)
+					inventoryCount += item.getQuantity();
+			}
+		}
+
+		int bankPart = Math.max(0, cachedBankScalesCount);
+		if (bankDataLoaded)
+		{
+			zulrahScalesCount = bankPart + inventoryCount;
+			zulrahScalesWarn  = zulrahScalesCount < config.zulrahScalesThreshold();
+			saveScalesCount();
+		}
+		else
+		{
+			zulrahScalesWarn = inventoryCount < config.zulrahScalesThreshold();
+		}
 	}
 
 	private void decrementBloodFury()
@@ -986,6 +1214,129 @@ public class CorpBoostingQOLPlugin extends Plugin
 		{
 			toxicStaffCharges = -1;
 			toxicStaffNoData  = true;
+		}
+	}
+
+	private String getSupplyConfigKey()
+	{
+		Player local    = client.getLocalPlayer();
+		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
+		return SUPPLY_KEY_PREFIX + username;
+	}
+
+	private void saveSupplyCount()
+	{
+		String key = getSupplyConfigKey();
+		if (!key.endsWith("unknown"))
+		{
+			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(supplyCount));
+		}
+	}
+
+	private void loadSupplyCount()
+	{
+		Player local = client.getLocalPlayer();
+		if (local == null || local.getName() == null) return;
+
+		String val = configManager.getConfiguration(CONFIG_GROUP, getSupplyConfigKey());
+		if (val != null)
+		{
+			try
+			{
+				supplyCount = Integer.parseInt(val);
+				supplyWarn  = config.suppliesEnabled() && supplyCount >= 0
+						&& supplyCount < config.supplyThreshold();
+			}
+			catch (NumberFormatException e)
+			{
+				supplyCount = -1;
+			}
+		}
+		else
+		{
+			supplyCount = -1;
+		}
+	}
+
+	private String getHouseTabConfigKey()
+	{
+		Player local    = client.getLocalPlayer();
+		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
+		return HOUSE_TAB_KEY_PREFIX + username;
+	}
+
+	private void saveHouseTabCount()
+	{
+		String key = getHouseTabConfigKey();
+		if (!key.endsWith("unknown"))
+		{
+			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(houseTabCount));
+		}
+	}
+
+	private void loadHouseTabCount()
+	{
+		Player local = client.getLocalPlayer();
+		if (local == null || local.getName() == null) return;
+
+		String val = configManager.getConfiguration(CONFIG_GROUP, getHouseTabConfigKey());
+		if (val != null)
+		{
+			try
+			{
+				houseTabCount = Integer.parseInt(val);
+				houseTabWarn  = config.houseTabEnabled() && houseTabCount >= 0
+						&& houseTabCount < config.houseTabThreshold();
+			}
+			catch (NumberFormatException e)
+			{
+				houseTabCount = -1;
+			}
+		}
+		else
+		{
+			houseTabCount = -1;
+		}
+	}
+
+	private String getScalesConfigKey()
+	{
+		Player local    = client.getLocalPlayer();
+		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
+		return SCALES_KEY_PREFIX + username;
+	}
+
+	private void saveScalesCount()
+	{
+		String key = getScalesConfigKey();
+		if (!key.endsWith("unknown"))
+		{
+			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(zulrahScalesCount));
+		}
+	}
+
+	private void loadScalesCount()
+	{
+		Player local = client.getLocalPlayer();
+		if (local == null || local.getName() == null) return;
+
+		String val = configManager.getConfiguration(CONFIG_GROUP, getScalesConfigKey());
+		if (val != null)
+		{
+			try
+			{
+				zulrahScalesCount = Integer.parseInt(val);
+				zulrahScalesWarn  = config.zulrahScalesEnabled() && zulrahScalesCount >= 0
+						&& zulrahScalesCount < config.zulrahScalesThreshold();
+			}
+			catch (NumberFormatException e)
+			{
+				zulrahScalesCount = -1;
+			}
+		}
+		else
+		{
+			zulrahScalesCount = -1;
 		}
 	}
 
