@@ -133,6 +133,9 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Inject
 	private KeyManager keyManager;
 
+	@Inject
+	private net.runelite.client.callback.ClientThread clientThread;
+
 	boolean inCorpCave   = false;
 	boolean inCombat     = false;
 	boolean vengReady    = false;
@@ -314,19 +317,21 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 		if (key.equals("supplyThreshold") || key.equals("suppliesEnabled") || key.equals("supplyType"))
 		{
-			checkSupplies();
+			clientThread.invokeLater(this::checkSupplies);
 		}
 
 		if (key.equals("quickPrayerEnabled"))
 		{
-			quickPrayerWarn = config.quickPrayerEnabled()
-					&& client.getVarbitValue(Varbits.QUICK_PRAYER) == 0;
+			clientThread.invokeLater(() ->
+				quickPrayerWarn = config.quickPrayerEnabled()
+						&& client.getVarbitValue(Varbits.QUICK_PRAYER) == 0);
 		}
 
 		if (key.equals("lunarsEnabled"))
 		{
-			lunarsWarn = config.lunarsEnabled()
-					&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK;
+			clientThread.invokeLater(() ->
+				lunarsWarn = config.lunarsEnabled()
+						&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK);
 		}
 
 		if (key.equals("tomeOfWaterThreshold") || key.equals("tomeOfWaterEnabled"))
