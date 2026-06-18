@@ -1,6 +1,7 @@
-package com.corpboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import com.google.inject.Provides;
+import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -15,7 +16,11 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.Player;
 import net.runelite.api.Item;
 import net.runelite.api.ItemContainer;
+import net.runelite.api.Prayer;
+import net.runelite.api.Skill;
 import net.runelite.api.Varbits;
+import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.ChatMessage;
@@ -35,72 +40,69 @@ import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.HotkeyListener;
 
 @PluginDescriptor(
-		name = "Corp Boosting QOL",
-		description = "Boosting QOL for Corp: combat overlay, vengeance/lunars indicator, movement lock, blood fury/rune pouch/supply/splasher charge tracking.",
-		tags = {"corp", "boost", "vengeance", "combat", "overlay", "blood fury", "rune pouch", "corporeal beast", "splash", "tome", "serp", "toxic staff"}
+		name = "Pet Boosting QOL",
+		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, and King Black Dragon: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
+		tags = {"corp", "kq", "kalphite", "mole", "kbd", "boost", "vengeance", "combat", "overlay", "blood fury",
+				"rune pouch", "corporeal beast", "splash", "tome", "serp", "toxic staff", "saturate", "antifire", "poison"}
 )
-public class CorpBoostingQOLPlugin extends Plugin
+@Slf4j
+public class PetBoostingQOLPlugin extends Plugin
 {
+	// Region IDs
+	static final int CORP_CAVE_REGION = 11844;
+	static final int KQ_CAVE_REGION   = 13972;
+	static final int MOLE_LAIR_REGION = 6993;
+	static final int KBD_LAIR_REGION  = 9033;
 
-	static final int CORP_CAVE_REGION        = 11844;
-	private static final int VENG_COOLDOWN_TICKS = 50;
-	private static final int VENG_GRAPHIC        = 726;
-	private static final int FANG_ATTACK_ANIM    = 9471;
-	private static final int COMBAT_IDLE_TIMEOUT = 10;
-	private static final int SPELLBOOK_VARBIT    = 4070;
-	private static final int LUNAR_SPELLBOOK     = 2;
+	// Shared constants
+	private static final int VENG_COOLDOWN_TICKS  = 50;
+	private static final int VENG_GRAPHIC          = 726;
+	private static final int SPELLBOOK_VARBIT      = 4070;
+	private static final int LUNAR_SPELLBOOK       = 2;
+	private static final int SPEC_ENERGY_VARPLAYER = 300;
 
-	// Water Strike cast animation — this is the Toxic Staff of the Dead cast animation (11423),
-	// distinct from the standard Water Strike animation (711). Used for splasher tome tracking.
-	private static final int WATER_STRIKE_ANIM  = 11423;
-	private static final int NOX_HALBERD_ANIM   = 440; // slash/swipe style
-	private static final int NOX_HALBERD_ANIM2  = 428; // jab/stab style
-	private static final int ELDER_MAUL_ANIM    = 7516;
+	private static final int SATURATED_HEART_GRAPHIC = 2287;
+	private static final int SATURATED_HEART_TICKS = 500;  // 5 minutes
 
-	// Serp helm: 10 scales on combat enter, then 10 more every 90 ticks.
-	// Toxic staff: 10 scales on combat enter, then 10 more every 100 ticks.
-	private static final int SERP_DRAIN_INTERVAL    = 90;
-	private static final int STAFF_DRAIN_INTERVAL   = 100;
-	private static final int SPLASHER_IDLE_TIMEOUT  = 6;
+	// Corp-specific constants
+	private static final int COMBAT_IDLE_TIMEOUT   = 10;
+	private static final int FANG_ATTACK_ANIM      = 9471;
+	private static final int NOX_HALBERD_ANIM      = 440;
+	private static final int NOX_HALBERD_ANIM2     = 428;
+	private static final int ELDER_MAUL_ANIM       = 7516;
+	private static final int WATER_STRIKE_ANIM     = 11423;
+	private static final int SERP_DRAIN_INTERVAL   = 90;
+	private static final int STAFF_DRAIN_INTERVAL  = 100;
+	private static final int SPLASHER_IDLE_TIMEOUT = 6;
 
-	// Varbit IDs for serp helm and toxic staff charges.
-	// Primary source of truth if correct; Check message parsing is the fallback.
-	private static final int SERP_HELM_CHARGES_VARBIT   = 6668;
+	private static final int SERP_HELM_CHARGES_VARBIT  = 6668;
 	private static final int TOXIC_STAFF_CHARGES_VARBIT = 6669;
 
-	// Equipment item IDs
-	private static final int ITEM_SERP_HELM          = 12931; // charged serpentine helm
+	private static final int ITEM_SERP_HELM          = 12931;
 	private static final int ITEM_SERP_HELM_MAGMA    = 13197;
 	private static final int ITEM_SERP_HELM_TANZANITE = 13199;
-	private static final int ITEM_TOXIC_STAFF        = 12904; // toxic staff of the dead (charged)
-	private static final int ITEM_TOXIC_STAFF_DMM    = 33036; // DMM toxic staff
-	private static final int ITEM_TOME_OF_WATER      = 25616; // charged tome of water
+	private static final int ITEM_TOXIC_STAFF        = 12904;
+	private static final int ITEM_TOXIC_STAFF_DMM    = 33036;
+	private static final int ITEM_TOME_OF_WATER      = 25616;
 	private static final int ITEM_HOUSE_TAB          = 8013;
 	private static final int ITEM_ZULRAH_SCALES      = 12934;
 
-	// Equipment panel widget IDs for the Check menu option (param1 in MenuOptionClicked).
-	// These are the packed widget IDs for interface 387 (equipment panel):
-	//   component 15 = head slot  → (387 << 16) | 15 = 25362447
-	//   component 18 = weapon slot → (387 << 16) | 18 = 25362450
-	// If Check detection ever breaks after an RS update, re-confirm with:
-	//   log.info("Check param1={}", event.getParam1()) after right-clicking the item.
-	private static final int WIDGET_EQUIP_SERP_HELM  = 25362447; // interface 387, component 15
-	private static final int WIDGET_EQUIP_TOXIC_STAFF = 25362450; // interface 387, component 18
+	private static final int WIDGET_EQUIP_SERP_HELM  = 25362447;
+	private static final int WIDGET_EQUIP_TOXIC_STAFF = 25362450;
 
+	// Patterns
 	private static final Pattern BLOOD_FURY_CHECK_PATTERN =
 			Pattern.compile("Your Amulet of blood fury will work for ([\\d,]+) more hits\\.");
 	private static final Pattern BLOOD_FURY_RECHARGE_PATTERN =
 			Pattern.compile("It will now work for ([\\d,]+) more hits\\.");
-
-	// Case-insensitive, trailing punctuation optional — covers likely game message variants.
-	// "Your tome currently holds 3,520 charges." (exact game message)
 	private static final Pattern TOME_OF_WATER_CHECK_PATTERN =
 			Pattern.compile("Your tome currently holds ([\\d,]+) charges?");
-	// "Scales: 10,410 (94.6%)" — right-click Check on serp helm or toxic staff
 	private static final Pattern SCALES_CHECK_PATTERN =
 			Pattern.compile("Scales: ([\\d,]+) \\(");
 
-	private static final String CONFIG_GROUP          = "corpboostingqol";
+
+	// Config keys
+	private static final String CONFIG_GROUP          = "petboostingqol";
 	private static final String BLOOD_FURY_KEY_PREFIX = "bloodfury_charges_";
 	private static final String TOME_KEY_PREFIX       = "tome_charges_";
 	private static final String SERP_KEY_PREFIX       = "serp_charges_";
@@ -109,47 +111,38 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private static final String HOUSE_TAB_KEY_PREFIX  = "housetab_count_";
 	private static final String SCALES_KEY_PREFIX     = "scales_count_";
 
-	@Inject
-	private Client client;
+	// Injected dependencies
+	@Inject private Client client;
+	@Inject private OverlayManager overlayManager;
+	@Inject private PetBoostingQOLCombatOverlay combatOverlay;
+	@Inject private PetBoostingQOLWarningOverlay warningOverlay;
+	@Inject private PetBoostingQOLAlertOverlay alertOverlay;
+	@Inject private PetBoostingQOLConfig config;
+	@Inject private ConfigManager configManager;
+	@Inject private KeyManager keyManager;
+	@Inject private net.runelite.client.callback.ClientThread clientThread;
 
-	@Inject
-	private OverlayManager overlayManager;
+	// Boss location flags
+	boolean inCorpCave = false;
+	boolean inKqCave   = false;
+	boolean inMoleLair = false;
+	boolean inKbdLair  = false;
 
-	@Inject
-	private CorpBoostingQOLCombatOverlay combatOverlay;
-
-	@Inject
-	private CorpBoostingQOLWarningOverlay warningOverlay;
-
-	@Inject
-	private CorpBoostingQOLAlertOverlay alertOverlay;
-
-	@Inject
-	private CorpBoostingQOLConfig config;
-
-	@Inject
-	private ConfigManager configManager;
-
-	@Inject
-	private KeyManager keyManager;
-
-	@Inject
-	private net.runelite.client.callback.ClientThread clientThread;
-
-	boolean inCorpCave   = false;
-	boolean inCombat     = false;
-	boolean vengReady    = false;
-	boolean lunarsWarn   = false;
+	// Corp state
+	boolean inCombat        = false;
+	boolean vengReady       = false;
+	boolean lunarsWarn      = false;
+	boolean quickPrayerWarn = false;
 
 	int     bloodFuryCharges = -1;
 	boolean bloodFuryWarn    = false;
-	boolean bloodFuryNoData  = false;
+	boolean bloodFuryNoData  = true;
 
 	List<String> runePouchWarnings = new ArrayList<>();
 
 	boolean supplyWarn  = false;
 	int     supplyCount = -1;
-	private int cachedBankSupplyCount = -1; // last known bank quantity; survives bank close
+	private int cachedBankSupplyCount = -1;
 
 	boolean houseTabWarn  = false;
 	int     houseTabCount = -1;
@@ -159,33 +152,51 @@ public class CorpBoostingQOLPlugin extends Plugin
 	int     zulrahScalesCount = -1;
 	private int cachedBankScalesCount = -1;
 
-	boolean quickPrayerWarn = false;
-
-	// Splasher
 	int     tomeOfWaterCharges = -1;
 	boolean tomeOfWaterWarn    = false;
 	boolean tomeOfWaterNoData  = true;
+	int     serpHelmCharges    = -1;
+	boolean serpHelmWarn       = false;
+	boolean serpHelmNoData     = true;
+	int     toxicStaffCharges  = -1;
+	boolean toxicStaffWarn     = false;
+	boolean toxicStaffNoData   = true;
 
-	int     serpHelmCharges = -1;
-	boolean serpHelmWarn    = false;
-	boolean serpHelmNoData  = true;
+	// KQ state
+	boolean kqVengReady            = false;
+	boolean kqSaturatedActive      = false;
+	boolean kqSaturatedWarn        = false;
+	int     kqSaturatedTicksLeft   = 0;
+	boolean kqProtMageWarn         = false;
+	boolean kqSpecWarn             = false;
+	boolean kqPrayerRegenWarn      = false;
+	boolean kqPoisoned             = false;
+	boolean kqLowPrayerWarn        = false;
 
-	int     toxicStaffCharges = -1;
-	boolean toxicStaffWarn    = false;
-	boolean toxicStaffNoData  = true;
+	// Mole state
+	boolean moleSaturatedActive    = false;
+	boolean moleSaturatedWarn      = false;
+	int     moleSaturatedTicksLeft = 0;
+	boolean moleSpecWarn           = false;
 
-	private boolean vengActive        = false;
-	private int     vengCooldownTicks = 0;
-	private int     combatIdleTicks   = 0;
-	private boolean runePouchDirty    = false;
-	private boolean bloodFuryLoaded   = false;
-	private boolean isHotkeyHeld      = false;
+	// KBD state
+	boolean kbdAntifireWarn      = false;
+	boolean kbdPoisoned          = false;
+	boolean kbdSpecWarn          = false;
+
+	// Private fields
+	private boolean vengActive              = false;
+	private int     vengCooldownTicks       = 0;
+	private boolean kqVengJustUsed          = false;
+	private int     kqVengCooldown          = 0;
+	private int     combatIdleTicks         = 0;
+	private boolean runePouchDirty          = false;
+	private boolean bloodFuryLoaded         = false;
+	private boolean isHotkeyHeld            = false;
 	private HotkeyListener hotkeyListener;
-
 	private boolean supplyLoaded            = false;
 	private boolean houseTabLoaded          = false;
 	private boolean scalesLoaded            = false;
-
 	private boolean splasherInCombat        = false;
 	private int     splasherIdleTicks       = 0;
 	private int     serpDrainTicks          = 0;
@@ -195,9 +206,13 @@ public class CorpBoostingQOLPlugin extends Plugin
 	private boolean splasherLoaded          = false;
 	private boolean bankDataLoaded          = false;
 
-	private enum ScalesItem { NONE, SERP, STAFF }
+	private enum ScalesItem
+	{
+		NONE, SERP, STAFF
+	}
 	private ScalesItem pendingScalesCheck = ScalesItem.NONE;
 
+	// Lifecycle
 	@Override
 	protected void startUp()
 	{
@@ -207,8 +222,16 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 		hotkeyListener = new HotkeyListener(() -> config.movementHoldKey())
 		{
-			@Override public void hotkeyPressed()  { isHotkeyHeld = true;  }
-			@Override public void hotkeyReleased() { isHotkeyHeld = false; }
+			@Override
+			public void hotkeyPressed()
+			{
+				isHotkeyHeld = true;
+			}
+			@Override
+			public void hotkeyReleased()
+			{
+				isHotkeyHeld = false;
+			}
 		};
 		keyManager.registerKeyListener(hotkeyListener);
 
@@ -234,23 +257,22 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 	private void resetState()
 	{
-		inCorpCave        = false;
+		inCorpCave = false;
+		inKqCave   = false;
+		inMoleLair = false;
+		inKbdLair  = false;
+
 		inCombat          = false;
 		vengActive        = false;
 		vengReady         = false;
 		lunarsWarn        = false;
+		quickPrayerWarn   = false;
 		vengCooldownTicks = 0;
 		combatIdleTicks   = 0;
-
 		bloodFuryCharges  = -1;
 		bloodFuryWarn     = false;
-		// Intentionally false here (not true): on login the overlay check
-		// bloodFuryNoData || bloodFuryCharges == -1 still shows the "inspect" prompt
-		// because charges are -1. Setting noData=false avoids a double-trigger on startup
-		// before loadBloodFuryCharges() has had a chance to run.
 		bloodFuryNoData   = true;
 		bloodFuryLoaded   = false;
-
 		runePouchWarnings = new ArrayList<>();
 		supplyWarn        = false;
 		supplyCount       = -1;
@@ -261,10 +283,8 @@ public class CorpBoostingQOLPlugin extends Plugin
 		zulrahScalesWarn  = false;
 		zulrahScalesCount = -1;
 		cachedBankScalesCount   = -1;
-		quickPrayerWarn   = false;
 		runePouchDirty    = false;
 		isHotkeyHeld      = false;
-
 		tomeOfWaterCharges      = -1;
 		tomeOfWaterWarn         = false;
 		tomeOfWaterNoData       = true;
@@ -286,66 +306,60 @@ public class CorpBoostingQOLPlugin extends Plugin
 		houseTabLoaded          = false;
 		scalesLoaded            = false;
 		pendingScalesCheck      = ScalesItem.NONE;
+
+		kqVengReady            = false;
+		kqVengCooldown         = 0;
+		kqVengJustUsed         = false;
+		kqSaturatedActive      = false;
+		kqSaturatedWarn        = false;
+		kqSaturatedTicksLeft   = 0;
+		kqProtMageWarn         = false;
+		kqSpecWarn             = false;
+		kqPrayerRegenWarn      = false;
+		kqPoisoned             = false;
+		kqLowPrayerWarn        = false;
+
+		moleSaturatedActive    = false;
+		moleSaturatedWarn      = false;
+		moleSaturatedTicksLeft = 0;
+		moleSpecWarn           = false;
+
+		kbdAntifireWarn      = false;
+		kbdPoisoned          = false;
+		kbdSpecWarn          = false;
 	}
+
+	// Events
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!event.getGroup().equals(CONFIG_GROUP))
-		{
-			return;
-		}
+		if (!event.getGroup().equals(CONFIG_GROUP)) return;
 		String key = event.getKey();
 
 		if (key.equals("bloodFuryThreshold") || key.equals("bloodFuryEnabled"))
 		{
 			if (!bloodFuryNoData && bloodFuryCharges >= 0)
-			{
 				bloodFuryWarn = config.bloodFuryEnabled() && bloodFuryCharges < config.bloodFuryThreshold();
-			}
 			else if (bloodFuryCharges == -1)
-			{
-				bloodFuryNoData = true;
-				bloodFuryWarn   = false;
-			}
+		{
+			bloodFuryNoData = true;
+			bloodFuryWarn = false;
 		}
-
+		}
 		if (key.equals("runePouchThreshold") || key.equals("runePouchEnabled"))
-		{
 			runePouchDirty = true;
-		}
-
 		if (key.equals("supplyThreshold") || key.equals("suppliesEnabled") || key.equals("supplyType"))
-		{
 			clientThread.invokeLater(this::checkSupplies);
-		}
-
 		if (key.equals("quickPrayerEnabled"))
-		{
-			clientThread.invokeLater(() ->
-				quickPrayerWarn = config.quickPrayerEnabled()
-						&& client.getVarbitValue(Varbits.QUICK_PRAYER) == 0);
-		}
-
+			clientThread.invokeLater(() -> quickPrayerWarn = config.quickPrayerEnabled()
+					&& client.getVarbitValue(Varbits.QUICK_PRAYER) == 0);
 		if (key.equals("lunarsEnabled"))
-		{
-			clientThread.invokeLater(() ->
-				lunarsWarn = config.lunarsEnabled()
-						&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK);
-		}
-
-		if (key.equals("tomeOfWaterThreshold") || key.equals("tomeOfWaterEnabled"))
-		{
-			reevaluateTomeWarn();
-		}
-		if (key.equals("serpHelmThreshold") || key.equals("serpHelmEnabled"))
-		{
-			reevaluateSerpWarn();
-		}
-		if (key.equals("toxicStaffThreshold") || key.equals("toxicStaffEnabled"))
-		{
-			reevaluateStaffWarn();
-		}
+			clientThread.invokeLater(() -> lunarsWarn = config.lunarsEnabled()
+					&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK);
+		if (key.equals("tomeOfWaterThreshold") || key.equals("tomeOfWaterEnabled")) reevaluateTomeWarn();
+		if (key.equals("serpHelmThreshold")    || key.equals("serpHelmEnabled"))    reevaluateSerpWarn();
+		if (key.equals("toxicStaffThreshold")  || key.equals("toxicStaffEnabled"))  reevaluateStaffWarn();
 	}
 
 	@Subscribe
@@ -374,14 +388,16 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		if (client.getGameState() != GameState.LOGGED_IN)
-		{
-			return;
-		}
+		if (client.getGameState() != GameState.LOGGED_IN) return;
 
 		WorldPoint loc = client.getLocalPlayer().getWorldLocation();
-		inCorpCave = loc.getRegionID() == CORP_CAVE_REGION;
+		int region = loc.getRegionID();
+		inCorpCave = region == CORP_CAVE_REGION;
+		inKqCave   = region == KQ_CAVE_REGION;
+		inMoleLair = region == MOLE_LAIR_REGION;
+		inKbdLair  = region == KBD_LAIR_REGION;
 
+		// Lazy loaders
 		if (!bloodFuryLoaded && config.bloodFuryEnabled())
 		{
 			loadBloodFuryCharges();
@@ -425,61 +441,40 @@ public class CorpBoostingQOLPlugin extends Plugin
 			}
 		}
 
-		// Veng cooldown
 		if (vengCooldownTicks > 0) vengCooldownTicks--;
 		vengReady = !vengActive && vengCooldownTicks == 0;
 
-		// Corp combat idle
 		if (combatIdleTicks > 0) combatIdleTicks--;
 		else inCombat = false;
 
-		// Quick prayer warning — re-evaluate every tick inside corp cave so it
-		// appears immediately on first teleport in (not only after a varbit change).
 		if (config.quickPrayerEnabled())
-		{
 			quickPrayerWarn = client.getVarbitValue(Varbits.QUICK_PRAYER) == 0;
-		}
 
-		// Lunars warning — only inside corp cave
 		lunarsWarn = inCorpCave && config.lunarsEnabled()
 				&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK;
 
-		// Rune pouch
 		if (runePouchDirty && config.runePouchEnabled())
 		{
 			checkRunePouch();
 			runePouchDirty = false;
 		}
 
-		// ---- Splasher ----
-
-		// Serp helm and toxic staff: read from varbits every tick while equipped.
-		// This is the primary tracking method — completely automatic if varbit IDs
-		// are correct. The Check message fallback handles wrong IDs gracefully.
 		readSerpHelmVarbit();
 		readToxicStaffVarbit();
 
-		// Splasher combat idle countdown
-		if (splasherIdleTicks > 0)
-		{
-			splasherIdleTicks--;
-		}
+		if (splasherIdleTicks > 0) splasherIdleTicks--;
 		else if (splasherInCombat)
 		{
-			// Left combat — reset everything for next combat session
 			splasherInCombat        = false;
 			serpDrainTicks          = 0;
 			staffDrainTicks         = 0;
 			serpCombatEnterDrained  = false;
 			staffCombatEnterDrained = false;
 		}
-
-		// Tick up interval drain counters while in combat
 		if (splasherInCombat)
 		{
 			serpDrainTicks++;
 			staffDrainTicks++;
-
 			if (serpDrainTicks >= SERP_DRAIN_INTERVAL && serpHelmEquipped())
 			{
 				drainSerpHelm(10);
@@ -491,25 +486,99 @@ public class CorpBoostingQOLPlugin extends Plugin
 				staffDrainTicks = 0;
 			}
 		}
+
+		if (kqVengCooldown > 0) kqVengCooldown--;
+		kqVengReady = !kqVengJustUsed && kqVengCooldown == 0 && inKqCave;
+
+		if (inKqCave)
+		{
+			if (kqSaturatedActive)
+			{
+				if (kqSaturatedTicksLeft > 0) kqSaturatedTicksLeft--;
+				else
+				{
+					kqSaturatedActive = false;
+					kqSaturatedWarn = config.kqSaturatedHeartEnabled();
+				}
+			}
+			if (config.kqPrayerRegenEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(VarbitID.PRAYER_REGENERATION_POTION_TIMER) > 0;
+				kqPrayerRegenWarn = !buffActive;
+			}
+			kqProtMageWarn  = config.kqProtMageEnabled()  && !client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC);
+			if (config.kqSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) kqSpecWarn = true;
+				else if (spec < 1000) kqSpecWarn = false;
+			}
+			kqPoisoned      = config.kqPoisonEnabled()    && client.getVarpValue(VarPlayerID.POISON) > 0;
+			kqLowPrayerWarn = config.kqLowPrayerEnabled() && client.getBoostedSkillLevel(Skill.PRAYER) < config.kqPrayerThreshold();
+		}
+		else
+		{
+			kqProtMageWarn  = false;
+			kqSpecWarn      = false;
+			kqPoisoned      = false;
+			kqLowPrayerWarn = false;
+			kqVengReady     = false;
+		}
+
+		if (inMoleLair)
+		{
+			if (moleSaturatedActive)
+			{
+				if (moleSaturatedTicksLeft > 0) moleSaturatedTicksLeft--;
+				else
+				{
+					moleSaturatedActive = false;
+					moleSaturatedWarn = config.moleSaturatedHeartEnabled();
+				}
+			}
+			if (config.moleSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) moleSpecWarn = true;
+				else if (spec < 1000) moleSpecWarn = false;
+			}
+		}
+		else
+		{
+			moleSpecWarn = false;
+		}
+
+		if (inKbdLair)
+		{
+			if (config.kbdAntifireEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(VarbitID.ANTIFIRE_POTION) > 0;
+				kbdAntifireWarn = !buffActive;
+			}
+			kbdPoisoned = config.kbdPoisonEnabled() && client.getVarpValue(VarPlayerID.POISON) > 0;
+			if (config.kbdSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) kbdSpecWarn = true;
+				else if (spec < 1000) kbdSpecWarn = false;
+			}
+		}
+		else
+		{
+			kbdPoisoned      = false;
+			kbdSpecWarn      = false;
+			kbdAntifireWarn  = false;
+		}
 	}
 
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
 		int id = event.getVarbitId();
-
 		if (id == Varbits.QUICK_PRAYER && config.quickPrayerEnabled())
-		{
-			// onGameTick handles this every tick; this fires immediately on change
-			// for responsiveness between ticks.
 			quickPrayerWarn = event.getValue() == 0;
-		}
-
 		if (id == SPELLBOOK_VARBIT && config.lunarsEnabled() && inCorpCave)
-		{
 			lunarsWarn = event.getValue() != LUNAR_SPELLBOOK;
-		}
-
 		if (id == Varbits.RUNE_POUCH_RUNE1   || id == Varbits.RUNE_POUCH_RUNE2
 				|| id == Varbits.RUNE_POUCH_RUNE3   || id == Varbits.RUNE_POUCH_RUNE4
 				|| id == Varbits.RUNE_POUCH_AMOUNT1  || id == Varbits.RUNE_POUCH_AMOUNT2
@@ -523,24 +592,21 @@ public class CorpBoostingQOLPlugin extends Plugin
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
 		int containerId = event.getContainerId();
-
 		if (containerId == InventoryID.BANK.getId())
 		{
-			// Only update when bank actually has items — fires with empty container on close
 			ItemContainer bank = event.getItemContainer();
 			if (bank != null && bank.getItems().length > 0)
 			{
 				bankDataLoaded = true;
-				if (config.suppliesEnabled()) checkSupplies();
-				if (config.houseTabEnabled()) checkHouseTabs();
+				if (config.suppliesEnabled())     checkSupplies();
+				if (config.houseTabEnabled())     checkHouseTabs();
 				if (config.zulrahScalesEnabled()) checkZulrahScales();
 			}
 		}
-
 		if (containerId == InventoryID.INVENTORY.getId() && bankDataLoaded)
 		{
-			if (config.suppliesEnabled()) checkSupplies();
-			if (config.houseTabEnabled()) checkHouseTabs();
+			if (config.suppliesEnabled())     checkSupplies();
+			if (config.houseTabEnabled())     checkHouseTabs();
 			if (config.zulrahScalesEnabled()) checkZulrahScales();
 		}
 	}
@@ -548,27 +614,20 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
-		// Detect right-click Check on serp helm or toxic staff so we know
-		// which item the upcoming "Scales: X" chat message belongs to.
-		// Use slot index from the event and verify against what's actually equipped.
 		if (event.getMenuOption().equals("Check"))
 		{
 			int param1 = event.getParam1();
-			if (param1 == WIDGET_EQUIP_SERP_HELM)
-			{
-				pendingScalesCheck = ScalesItem.SERP;
-			}
-			else if (param1 == WIDGET_EQUIP_TOXIC_STAFF)
-			{
-				pendingScalesCheck = ScalesItem.STAFF;
-			}
+			if (param1 == WIDGET_EQUIP_SERP_HELM)   pendingScalesCheck = ScalesItem.SERP;
+			else if (param1 == WIDGET_EQUIP_TOXIC_STAFF) pendingScalesCheck = ScalesItem.STAFF;
 		}
-
-		if (!inCorpCave || !config.movementLockEnabled() || isHotkeyHeld)
+		if (inCorpCave && config.movementLockEnabled() && !isHotkeyHeld
+			&& event.getMenuAction() == MenuAction.WALK)
 		{
+			event.consume();
 			return;
 		}
-		if (event.getMenuAction() == MenuAction.WALK)
+		if (inKqCave && config.kqMovementLockEnabled() && !isHotkeyHeld
+			&& event.getMenuAction() == MenuAction.WALK)
 		{
 			event.consume();
 		}
@@ -577,41 +636,25 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Subscribe
 	public void onAnimationChanged(AnimationChanged event)
 	{
-		if (event.getActor() != client.getLocalPlayer())
-		{
-			return;
-		}
-
+		if (event.getActor() != client.getLocalPlayer()) return;
 		int anim = event.getActor().getAnimation();
 
-		// Corp alt — Fang attack
-		if (anim == FANG_ATTACK_ANIM && inCorpCave)
+		if ((anim == FANG_ATTACK_ANIM || anim == NOX_HALBERD_ANIM
+				|| anim == NOX_HALBERD_ANIM2 || anim == ELDER_MAUL_ANIM) && inCorpCave)
 		{
 			inCombat        = true;
 			combatIdleTicks = COMBAT_IDLE_TIMEOUT;
 			decrementBloodFury();
 		}
 
-		// Corp alt — Noxious halberd / Elder maul
-		if ((anim == NOX_HALBERD_ANIM || anim == NOX_HALBERD_ANIM2 || anim == ELDER_MAUL_ANIM) && inCorpCave)
-		{
-			inCombat        = true;
-			combatIdleTicks = COMBAT_IDLE_TIMEOUT;
-			decrementBloodFury();
-		}
-
-		// Splasher — Water Strike
 		if (anim == WATER_STRIKE_ANIM)
 		{
 			splasherIdleTicks = SPLASHER_IDLE_TIMEOUT;
-
 			if (!splasherInCombat)
 			{
-				// Entering combat — immediate 10-scale drain on serp and staff
 				splasherInCombat = true;
 				serpDrainTicks   = 0;
 				staffDrainTicks  = 0;
-
 				if (!serpCombatEnterDrained && serpHelmEquipped())
 				{
 					drainSerpHelm(10);
@@ -623,8 +666,6 @@ public class CorpBoostingQOLPlugin extends Plugin
 					staffCombatEnterDrained = true;
 				}
 			}
-
-			// Tome of water: 1 charge per Water Strike cast
 			if (config.tomeOfWaterEnabled() && tomeOfWaterEquipped()
 					&& !tomeOfWaterNoData && tomeOfWaterCharges > 0)
 			{
@@ -638,14 +679,37 @@ public class CorpBoostingQOLPlugin extends Plugin
 	@Subscribe
 	public void onGraphicChanged(GraphicChanged event)
 	{
-		if (event.getActor() != client.getLocalPlayer())
+		if (event.getActor() != client.getLocalPlayer()) return;
+		int graphic = event.getActor().getGraphic();
+
+		if (graphic == VENG_GRAPHIC)
 		{
-			return;
+			if (inCorpCave)
+			{
+				vengActive = true;
+				vengCooldownTicks = VENG_COOLDOWN_TICKS;
+			}
+			if (inKqCave)
+			{
+				kqVengJustUsed = true;
+				kqVengCooldown = VENG_COOLDOWN_TICKS;
+			}
 		}
-		if (event.getActor().getGraphic() == VENG_GRAPHIC)
+
+		if (graphic == SATURATED_HEART_GRAPHIC)
 		{
-			vengActive        = true;
-			vengCooldownTicks = VENG_COOLDOWN_TICKS;
+			if (inKqCave)
+			{
+				kqSaturatedActive    = true;
+				kqSaturatedWarn      = false;
+				kqSaturatedTicksLeft = SATURATED_HEART_TICKS;
+			}
+			if (inMoleLair)
+			{
+				moleSaturatedActive    = true;
+				moleSaturatedWarn      = false;
+				moleSaturatedTicksLeft = SATURATED_HEART_TICKS;
+			}
 		}
 	}
 
@@ -657,18 +721,14 @@ public class CorpBoostingQOLPlugin extends Plugin
 		if (msg.contains("Taste vengeance!"))
 		{
 			vengActive = false;
+			kqVengJustUsed = false;
 		}
 
 		ChatMessageType type = event.getType();
-		if (type != ChatMessageType.SPAM
-				&& type != ChatMessageType.GAMEMESSAGE
-				&& type != ChatMessageType.PLAYERRELATED
-				&& type != ChatMessageType.MESBOX)
-		{
+		if (type != ChatMessageType.SPAM && type != ChatMessageType.GAMEMESSAGE
+				&& type != ChatMessageType.PLAYERRELATED && type != ChatMessageType.MESBOX)
 			return;
-		}
 
-		// Blood fury
 		if (config.bloodFuryEnabled())
 		{
 			Matcher m = BLOOD_FURY_CHECK_PATTERN.matcher(msg);
@@ -678,13 +738,13 @@ public class CorpBoostingQOLPlugin extends Plugin
 				{
 					bloodFuryCharges = Integer.parseInt(m.group(1).replace(",", ""));
 					saveBloodFuryCharges();
-					bloodFuryWarn   = bloodFuryCharges < config.bloodFuryThreshold();
+					bloodFuryWarn = bloodFuryCharges < config.bloodFuryThreshold();
 					bloodFuryNoData = false;
 				}
-				catch (NumberFormatException e) {}
+				catch (NumberFormatException ignored)
+				{
+				}
 			}
-
-			// Blood shard recharge: "It will now work for X more hits."
 			Matcher rm = BLOOD_FURY_RECHARGE_PATTERN.matcher(msg);
 			if (rm.find())
 			{
@@ -692,14 +752,15 @@ public class CorpBoostingQOLPlugin extends Plugin
 				{
 					bloodFuryCharges = Integer.parseInt(rm.group(1).replace(",", ""));
 					saveBloodFuryCharges();
-					bloodFuryWarn   = bloodFuryCharges < config.bloodFuryThreshold();
+					bloodFuryWarn = bloodFuryCharges < config.bloodFuryThreshold();
 					bloodFuryNoData = false;
 				}
-				catch (NumberFormatException e) {}
+				catch (NumberFormatException ignored)
+				{
+				}
 			}
 		}
 
-		// Tome of water — right-click Check syncs the running count
 		if (config.tomeOfWaterEnabled())
 		{
 			Matcher m = TOME_OF_WATER_CHECK_PATTERN.matcher(msg);
@@ -712,102 +773,68 @@ public class CorpBoostingQOLPlugin extends Plugin
 					tomeOfWaterNoData = false;
 					reevaluateTomeWarn();
 				}
-				catch (NumberFormatException e)
+				catch (NumberFormatException ignored)
 				{
 				}
 			}
 		}
 
-		// Serp helm and toxic staff both show "Scales: X (Y%)" on right-click Check.
-		// Use pendingScalesCheck to know which item was actually checked.
 		Matcher scalesMatcher = SCALES_CHECK_PATTERN.matcher(msg);
-		if (scalesMatcher.find())
+		if (scalesMatcher.find() && pendingScalesCheck != ScalesItem.NONE)
 		{
-			if (pendingScalesCheck != ScalesItem.NONE)
+			try
 			{
-				try
+				int checked = Integer.parseInt(scalesMatcher.group(1).replace(",", ""));
+				if (pendingScalesCheck == ScalesItem.SERP && config.serpHelmEnabled())
 				{
-					int checked = Integer.parseInt(scalesMatcher.group(1).replace(",", ""));
-					if (pendingScalesCheck == ScalesItem.SERP && config.serpHelmEnabled())
-					{
-						serpHelmCharges = checked;
-						serpHelmNoData  = false;
-						saveSerpCharges();
-						reevaluateSerpWarn();
-					}
-					else if (pendingScalesCheck == ScalesItem.STAFF && config.toxicStaffEnabled())
-					{
-						toxicStaffCharges = checked;
-						toxicStaffNoData  = false;
-						saveStaffCharges();
-						reevaluateStaffWarn();
-					}
+					serpHelmCharges = checked;
+					serpHelmNoData = false;
+					saveSerpCharges();
+					reevaluateSerpWarn();
 				}
-				catch (NumberFormatException e)
+				else if (pendingScalesCheck == ScalesItem.STAFF && config.toxicStaffEnabled())
 				{
+					toxicStaffCharges = checked;
+					toxicStaffNoData = false;
+					saveStaffCharges();
+					reevaluateStaffWarn();
 				}
-				pendingScalesCheck = ScalesItem.NONE;
 			}
+			catch (NumberFormatException ignored)
+			{
+			}
+			pendingScalesCheck = ScalesItem.NONE;
 		}
+
 	}
 
+	// Splasher helpers
 	private void readSerpHelmVarbit()
 	{
-		if (!config.serpHelmEnabled())
-		{
-			return;
-		}
-		if (!serpHelmEquipped())
-		{
-			return;
-		}
+		if (!config.serpHelmEnabled() || !serpHelmEquipped()) return;
 		int val = client.getVarbitValue(SERP_HELM_CHARGES_VARBIT);
-		// Only trust the varbit if it returns a positive value. A zero reading
-		// most likely means the varbit ID is wrong, not that the helm is at 0 charges.
-		// The right-click Check message is the fallback source of truth.
-		if (val > 0)
+		if (val > 0 && val != serpHelmCharges)
 		{
-			if (val != serpHelmCharges)
-			{
-				serpHelmCharges = val;
-				serpHelmNoData  = false;
-				saveSerpCharges();
-				reevaluateSerpWarn();
-			}
+			serpHelmCharges = val;
+			serpHelmNoData = false;
+			saveSerpCharges();
+			reevaluateSerpWarn();
 		}
 	}
 
 	private void readToxicStaffVarbit()
 	{
-		if (!config.toxicStaffEnabled())
-		{
-			return;
-		}
-		if (!toxicStaffEquipped())
-		{
-			return;
-		}
+		if (!config.toxicStaffEnabled() || !toxicStaffEquipped()) return;
 		int val = client.getVarbitValue(TOXIC_STAFF_CHARGES_VARBIT);
-		// Only trust the varbit if it returns a positive value. A zero reading
-		// most likely means the varbit ID is wrong, not that the staff is at 0 charges.
-		// The right-click Check message is the fallback source of truth.
-		if (val > 0)
+		if (val > 0 && val != toxicStaffCharges)
 		{
-			if (val != toxicStaffCharges)
-			{
-				toxicStaffCharges = val;
-				toxicStaffNoData  = false;
-				saveStaffCharges();
-				reevaluateStaffWarn();
-			}
+			toxicStaffCharges = val;
+			toxicStaffNoData = false;
+			saveStaffCharges();
+			reevaluateStaffWarn();
 		}
 	}
 
-	/**
-	 * Apply a drain to serp helm charges.
-	 * If varbits are working this is redundant (varbit read corrects it next tick),
-	 * but it keeps the display accurate between ticks when varbits are wrong.
-	 */
 	private void drainSerpHelm(int amount)
 	{
 		if (serpHelmNoData || serpHelmCharges < 0)
@@ -858,42 +885,34 @@ public class CorpBoostingQOLPlugin extends Plugin
 
 	private void reevaluateTomeWarn()
 	{
-		tomeOfWaterWarn = config.tomeOfWaterEnabled()
-				&& !tomeOfWaterNoData
-				&& tomeOfWaterCharges >= 0
-				&& tomeOfWaterCharges < config.tomeOfWaterThreshold();
+		tomeOfWaterWarn = config.tomeOfWaterEnabled() && !tomeOfWaterNoData
+			&& tomeOfWaterCharges >= 0 && tomeOfWaterCharges < config.tomeOfWaterThreshold();
 	}
 
 	private void reevaluateSerpWarn()
 	{
-		serpHelmWarn = config.serpHelmEnabled()
-				&& !serpHelmNoData
-				&& serpHelmCharges >= 0
-				&& serpHelmCharges < config.serpHelmThreshold();
+		serpHelmWarn = config.serpHelmEnabled() && !serpHelmNoData
+			&& serpHelmCharges >= 0 && serpHelmCharges < config.serpHelmThreshold();
 	}
 
 	private void reevaluateStaffWarn()
 	{
-		toxicStaffWarn = config.toxicStaffEnabled()
-				&& !toxicStaffNoData
-				&& toxicStaffCharges >= 0
-				&& toxicStaffCharges < config.toxicStaffThreshold();
+		toxicStaffWarn = config.toxicStaffEnabled() && !toxicStaffNoData
+			&& toxicStaffCharges >= 0 && toxicStaffCharges < config.toxicStaffThreshold();
 	}
 
+	// Supply checks
 	private void checkRunePouch()
 	{
-		int[] runeVarbits   = { Varbits.RUNE_POUCH_RUNE1,   Varbits.RUNE_POUCH_RUNE2,   Varbits.RUNE_POUCH_RUNE3,   Varbits.RUNE_POUCH_RUNE4   };
+		int[] runeVarbits   = { Varbits.RUNE_POUCH_RUNE1, Varbits.RUNE_POUCH_RUNE2, Varbits.RUNE_POUCH_RUNE3, Varbits.RUNE_POUCH_RUNE4 };
 		int[] amountVarbits = { Varbits.RUNE_POUCH_AMOUNT1, Varbits.RUNE_POUCH_AMOUNT2, Varbits.RUNE_POUCH_AMOUNT3, Varbits.RUNE_POUCH_AMOUNT4 };
-
 		runePouchWarnings = new ArrayList<>();
 		for (int i = 0; i < runeVarbits.length; i++)
 		{
 			int runeId = client.getVarbitValue(runeVarbits[i]);
 			int amount = client.getVarbitValue(amountVarbits[i]);
 			if (runeId > 0 && amount > 0 && amount < config.runePouchThreshold())
-			{
 				runePouchWarnings.add(getRuneName(runeId) + ": " + amount + " left");
-			}
 		}
 	}
 
@@ -905,9 +924,7 @@ public class CorpBoostingQOLPlugin extends Plugin
 			return;
 		}
 		int targetId = config.supplyType().itemId;
-		int notedId  = targetId + 1; // noted form is always itemId + 1 in OSRS
-
-		// Update cached bank count only when we actually have bank data.
+		int notedId  = targetId + 1;
 		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
 		if (bank != null && bank.getItems().length > 0)
 		{
@@ -915,78 +932,59 @@ public class CorpBoostingQOLPlugin extends Plugin
 			for (Item item : bank.getItems())
 			{
 				if (item.getId() == targetId || item.getId() == notedId)
+				{
 					bankCount += item.getQuantity();
+				}
 			}
 			cachedBankSupplyCount = bankCount;
 		}
-
-		// Count inventory: both unnoted and noted forms are valid in inventory.
 		int inventoryCount = 0;
 		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		if (inventory != null)
-		{
-			for (Item item : inventory.getItems())
-			{
-				if (item.getId() == targetId || item.getId() == notedId)
-					inventoryCount += item.getQuantity();
-			}
-		}
-
-		// Total = cached bank + current inventory.
-		// If bank has not been loaded this session, preserve the persisted count and only
-		// warn based on inventory alone — avoids overwriting the saved total with a partial value.
+		if (inventory != null) for (Item item : inventory.getItems()) if (item.getId() == targetId || item.getId() == notedId) inventoryCount += item.getQuantity();
 		int bankPart = Math.max(0, cachedBankSupplyCount);
 		if (bankDataLoaded)
 		{
 			supplyCount = bankPart + inventoryCount;
-			supplyWarn  = supplyCount < config.supplyThreshold();
+			supplyWarn = supplyCount < config.supplyThreshold();
 			saveSupplyCount();
 		}
-		else
-		{
-			supplyWarn = inventoryCount < config.supplyThreshold();
-		}
+		else supplyWarn = inventoryCount < config.supplyThreshold();
 	}
 
-	private void checkHouseTabs() {
-		if (!config.houseTabEnabled()) {
+	private void checkHouseTabs()
+	{
+		if (!config.houseTabEnabled())
+		{
 			houseTabWarn = false;
 			return;
 		}
 		int notedId = ITEM_HOUSE_TAB + 1;
-
-		// Update cached bank count only when we actually have live bank data.
 		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
-		if (bank != null && bank.getItems().length > 0) {
+		if (bank != null && bank.getItems().length > 0)
+		{
 			int bankCount = 0;
-			for (Item item : bank.getItems()) {
+			for (Item item : bank.getItems())
+			{
 				if (item.getId() == ITEM_HOUSE_TAB || item.getId() == notedId)
+				{
 					bankCount += item.getQuantity();
+				}
 			}
 			cachedBankHouseTabCount = bankCount;
 		}
-
 		int inventoryCount = 0;
 		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		if (inventory != null) {
-			for (Item item : inventory.getItems()) {
-				if (item.getId() == ITEM_HOUSE_TAB || item.getId() == notedId)
-					inventoryCount += item.getQuantity();
-			}
-		}
-
+		if (inventory != null) for (Item item : inventory.getItems()) if (item.getId() == ITEM_HOUSE_TAB || item.getId() == notedId) inventoryCount += item.getQuantity();
 		int bankPart = Math.max(0, cachedBankHouseTabCount);
 		if (bankDataLoaded)
 		{
 			houseTabCount = bankPart + inventoryCount;
-			houseTabWarn  = houseTabCount < config.houseTabThreshold();
+			houseTabWarn = houseTabCount < config.houseTabThreshold();
 			saveHouseTabCount();
 		}
-		else
-		{
-			houseTabWarn = inventoryCount < config.houseTabThreshold();
-		}
+		else houseTabWarn = inventoryCount < config.houseTabThreshold();
 	}
+
 	private void checkZulrahScales()
 	{
 		if (!config.zulrahScalesEnabled())
@@ -994,8 +992,6 @@ public class CorpBoostingQOLPlugin extends Plugin
 			zulrahScalesWarn = false;
 			return;
 		}
-
-		// Zulrah's scales are stackable — they have no noted form, so only check ITEM_ZULRAH_SCALES.
 		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
 		if (bank != null && bank.getItems().length > 0)
 		{
@@ -1003,62 +999,49 @@ public class CorpBoostingQOLPlugin extends Plugin
 			for (Item item : bank.getItems())
 			{
 				if (item.getId() == ITEM_ZULRAH_SCALES)
+				{
 					bankCount += item.getQuantity();
+				}
 			}
 			cachedBankScalesCount = bankCount;
 		}
-
 		int inventoryCount = 0;
 		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		if (inventory != null)
-		{
-			for (Item item : inventory.getItems())
-			{
-				if (item.getId() == ITEM_ZULRAH_SCALES)
-					inventoryCount += item.getQuantity();
-			}
-		}
-
+		if (inventory != null) for (Item item : inventory.getItems()) if (item.getId() == ITEM_ZULRAH_SCALES) inventoryCount += item.getQuantity();
 		int bankPart = Math.max(0, cachedBankScalesCount);
 		if (bankDataLoaded)
 		{
 			zulrahScalesCount = bankPart + inventoryCount;
-			zulrahScalesWarn  = zulrahScalesCount < config.zulrahScalesThreshold();
+			zulrahScalesWarn = zulrahScalesCount < config.zulrahScalesThreshold();
 			saveScalesCount();
 		}
-		else
-		{
-			zulrahScalesWarn = inventoryCount < config.zulrahScalesThreshold();
-		}
+		else zulrahScalesWarn = inventoryCount < config.zulrahScalesThreshold();
 	}
 
 	private void decrementBloodFury()
 	{
-		if (!config.bloodFuryEnabled() || bloodFuryNoData || bloodFuryCharges <= 0)
-		{
-			return;
-		}
+		if (!config.bloodFuryEnabled() || bloodFuryNoData || bloodFuryCharges <= 0) return;
 		bloodFuryCharges--;
 		saveBloodFuryCharges();
 		bloodFuryWarn = bloodFuryCharges < config.bloodFuryThreshold();
 	}
 
-	private String getBloodFuryConfigKey()
+	// Persistence helpers
+	private String playerKey(String prefix)
 	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return BLOOD_FURY_KEY_PREFIX + username;
+		Player local = client.getLocalPlayer();
+		String name = (local != null && local.getName() != null) ? local.getName() : "unknown";
+		return prefix + name;
 	}
 
 	private void saveBloodFuryCharges()
 	{
-		String key = getBloodFuryConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(BLOOD_FURY_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(bloodFuryCharges));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(bloodFuryCharges));
 		}
 	}
-
 	private void loadBloodFuryCharges()
 	{
 		Player local = client.getLocalPlayer();
@@ -1067,316 +1050,257 @@ public class CorpBoostingQOLPlugin extends Plugin
 			bloodFuryNoData = true;
 			return;
 		}
-		String val = configManager.getConfiguration(CONFIG_GROUP, getBloodFuryConfigKey());
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(BLOOD_FURY_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				bloodFuryCharges = Integer.parseInt(val);
-				bloodFuryWarn    = config.bloodFuryEnabled() && bloodFuryCharges >= 0
-						&& bloodFuryCharges < config.bloodFuryThreshold();
-				bloodFuryNoData  = false;
-				bloodFuryLoaded  = true;
+				bloodFuryWarn = config.bloodFuryEnabled() && bloodFuryCharges >= 0
+					&& bloodFuryCharges < config.bloodFuryThreshold();
+				bloodFuryNoData = false;
+				bloodFuryLoaded = true;
 			}
 			catch (NumberFormatException e)
 			{
 				bloodFuryCharges = -1;
-				bloodFuryNoData  = true;
-				bloodFuryLoaded  = true;
+				bloodFuryNoData = true;
+				bloodFuryLoaded = true;
 			}
 		}
 		else
 		{
 			bloodFuryCharges = -1;
-			bloodFuryNoData  = true;
-			bloodFuryLoaded  = true;
+			bloodFuryNoData = true;
+			bloodFuryLoaded = true;
 		}
-	}
-
-	private String getTomeConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return TOME_KEY_PREFIX + username;
 	}
 
 	private void saveTomeCharges()
 	{
-		String key = getTomeConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(TOME_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(tomeOfWaterCharges));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(tomeOfWaterCharges));
 		}
 	}
-
 	private void loadTomeCharges()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getTomeConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(TOME_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				tomeOfWaterCharges = Integer.parseInt(val);
-				tomeOfWaterNoData  = tomeOfWaterCharges < 0;
+				tomeOfWaterNoData = tomeOfWaterCharges < 0;
 				reevaluateTomeWarn();
 			}
 			catch (NumberFormatException e)
 			{
 				tomeOfWaterCharges = -1;
-				tomeOfWaterNoData  = true;
+				tomeOfWaterNoData = true;
 			}
 		}
 		else
 		{
 			tomeOfWaterCharges = -1;
-			tomeOfWaterNoData  = true;
+			tomeOfWaterNoData = true;
 		}
-	}
-
-	private String getSerpConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return SERP_KEY_PREFIX + username;
 	}
 
 	private void saveSerpCharges()
 	{
-		String key = getSerpConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(SERP_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(serpHelmCharges));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(serpHelmCharges));
 		}
 	}
-
 	private void loadSerpCharges()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getSerpConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(SERP_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				serpHelmCharges = Integer.parseInt(val);
-				serpHelmNoData  = serpHelmCharges < 0;
+				serpHelmNoData = serpHelmCharges < 0;
 				reevaluateSerpWarn();
 			}
 			catch (NumberFormatException e)
 			{
 				serpHelmCharges = -1;
-				serpHelmNoData  = true;
+				serpHelmNoData = true;
 			}
 		}
 		else
 		{
 			serpHelmCharges = -1;
-			serpHelmNoData  = true;
+			serpHelmNoData = true;
 		}
-	}
-
-	private String getStaffConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return STAFF_KEY_PREFIX + username;
 	}
 
 	private void saveStaffCharges()
 	{
-		String key = getStaffConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(STAFF_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(toxicStaffCharges));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(toxicStaffCharges));
 		}
 	}
-
 	private void loadStaffCharges()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getStaffConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(STAFF_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				toxicStaffCharges = Integer.parseInt(val);
-				toxicStaffNoData  = toxicStaffCharges < 0;
+				toxicStaffNoData = toxicStaffCharges < 0;
 				reevaluateStaffWarn();
 			}
 			catch (NumberFormatException e)
 			{
 				toxicStaffCharges = -1;
-				toxicStaffNoData  = true;
+				toxicStaffNoData = true;
 			}
 		}
 		else
 		{
 			toxicStaffCharges = -1;
-			toxicStaffNoData  = true;
+			toxicStaffNoData = true;
 		}
-	}
-
-	private String getSupplyConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return SUPPLY_KEY_PREFIX + username;
 	}
 
 	private void saveSupplyCount()
 	{
-		String key = getSupplyConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(SUPPLY_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(supplyCount));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(supplyCount));
 		}
 	}
-
 	private void loadSupplyCount()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getSupplyConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(SUPPLY_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				supplyCount = Integer.parseInt(val);
-				supplyWarn  = config.suppliesEnabled() && supplyCount >= 0
-						&& supplyCount < config.supplyThreshold();
+				supplyWarn = config.suppliesEnabled() && supplyCount >= 0
+					&& supplyCount < config.supplyThreshold();
 			}
 			catch (NumberFormatException e)
 			{
 				supplyCount = -1;
 			}
 		}
-		else
-		{
-			supplyCount = -1;
-		}
-	}
-
-	private String getHouseTabConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return HOUSE_TAB_KEY_PREFIX + username;
+		else supplyCount = -1;
 	}
 
 	private void saveHouseTabCount()
 	{
-		String key = getHouseTabConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(HOUSE_TAB_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(houseTabCount));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(houseTabCount));
 		}
 	}
-
 	private void loadHouseTabCount()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getHouseTabConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(HOUSE_TAB_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				houseTabCount = Integer.parseInt(val);
-				houseTabWarn  = config.houseTabEnabled() && houseTabCount >= 0
-						&& houseTabCount < config.houseTabThreshold();
+				houseTabWarn = config.houseTabEnabled() && houseTabCount >= 0
+					&& houseTabCount < config.houseTabThreshold();
 			}
 			catch (NumberFormatException e)
 			{
 				houseTabCount = -1;
 			}
 		}
-		else
-		{
-			houseTabCount = -1;
-		}
-	}
-
-	private String getScalesConfigKey()
-	{
-		Player local    = client.getLocalPlayer();
-		String username = (local != null && local.getName() != null) ? local.getName() : "unknown";
-		return SCALES_KEY_PREFIX + username;
+		else houseTabCount = -1;
 	}
 
 	private void saveScalesCount()
 	{
-		String key = getScalesConfigKey();
-		if (!key.endsWith("unknown"))
+		String k = playerKey(SCALES_KEY_PREFIX);
+		if (!k.endsWith("unknown"))
 		{
-			configManager.setConfiguration(CONFIG_GROUP, key, String.valueOf(zulrahScalesCount));
+			configManager.setConfiguration(CONFIG_GROUP, k, String.valueOf(zulrahScalesCount));
 		}
 	}
-
 	private void loadScalesCount()
 	{
 		Player local = client.getLocalPlayer();
-		if (local == null || local.getName() == null) return;
-
-		String val = configManager.getConfiguration(CONFIG_GROUP, getScalesConfigKey());
+		if (local == null || local.getName() == null)
+		{
+			return;
+		}
+		String val = configManager.getConfiguration(CONFIG_GROUP, playerKey(SCALES_KEY_PREFIX));
 		if (val != null)
 		{
 			try
 			{
 				zulrahScalesCount = Integer.parseInt(val);
-				zulrahScalesWarn  = config.zulrahScalesEnabled() && zulrahScalesCount >= 0
-						&& zulrahScalesCount < config.zulrahScalesThreshold();
+				zulrahScalesWarn = config.zulrahScalesEnabled() && zulrahScalesCount >= 0
+					&& zulrahScalesCount < config.zulrahScalesThreshold();
 			}
 			catch (NumberFormatException e)
 			{
 				zulrahScalesCount = -1;
 			}
 		}
-		else
-		{
-			zulrahScalesCount = -1;
-		}
+		else zulrahScalesCount = -1;
 	}
 
 	private String getRuneName(int runeId)
 	{
 		switch (runeId)
 		{
-			case 1:  return "Air rune";
-			case 2:  return "Water rune";
-			case 3:  return "Earth rune";
-			case 4:  return "Fire rune";
-			case 5:  return "Mind rune";
-			case 6:  return "Chaos rune";
-			case 7:  return "Death rune";
-			case 8:  return "Blood rune";
-			case 9:  return "Cosmic rune";
-			case 10: return "Nature rune";
-			case 11: return "Law rune";
-			case 12: return "Soul rune";
-			case 13: return "Wrath rune";
-			case 14: return "Astral rune";
-			case 15: return "Mist rune";
-			case 16: return "Mud rune";
-			case 17: return "Dust rune";
-			case 18: return "Lava rune";
-			case 19: return "Steam rune";
-			case 20: return "Smoke rune";
-			case 21: return "Aether rune";
+			case 1:  return "Air rune";    case 2:  return "Water rune";  case 3:  return "Earth rune";
+			case 4:  return "Fire rune";   case 5:  return "Mind rune";   case 6:  return "Chaos rune";
+			case 7:  return "Death rune";  case 8:  return "Blood rune";  case 9:  return "Cosmic rune";
+			case 10: return "Nature rune"; case 11: return "Law rune";    case 12: return "Soul rune";
+			case 13: return "Wrath rune";  case 14: return "Astral rune"; case 15: return "Mist rune";
+			case 16: return "Mud rune";    case 17: return "Dust rune";   case 18: return "Lava rune";
+			case 19: return "Steam rune";  case 20: return "Smoke rune";  case 21: return "Aether rune";
 			default: return "Unknown rune (id=" + runeId + ")";
 		}
 	}
 
 	@Provides
-	CorpBoostingQOLConfig provideConfig(ConfigManager configManager)
+	PetBoostingQOLConfig provideConfig(ConfigManager configManager)
 	{
-		return configManager.getConfig(CorpBoostingQOLConfig.class);
+		return configManager.getConfig(PetBoostingQOLConfig.class);
 	}
 }

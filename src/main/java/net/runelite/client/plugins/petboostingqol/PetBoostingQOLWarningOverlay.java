@@ -1,4 +1,4 @@
-package com.corpboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -15,20 +15,19 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 
-public class CorpBoostingQOLWarningOverlay extends Overlay
+public class PetBoostingQOLWarningOverlay extends Overlay
 {
 	private static final Color TEXT_COLOR = Color.WHITE;
-
 	private static final int   BOX_WIDTH  = 380;
 	private static final int   ROW_HEIGHT = 36;
 	private static final int   PADDING_X  = 12;
 	private static final int   ARC        = 4;
 
-	private final CorpBoostingQOLPlugin plugin;
-	private final CorpBoostingQOLConfig config;
+	private final PetBoostingQOLPlugin plugin;
+	private final PetBoostingQOLConfig config;
 
 	@Inject
-	public CorpBoostingQOLWarningOverlay(CorpBoostingQOLPlugin plugin, CorpBoostingQOLConfig config)
+	public PetBoostingQOLWarningOverlay(PetBoostingQOLPlugin plugin, PetBoostingQOLConfig config)
 	{
 		this.plugin = plugin;
 		this.config = config;
@@ -44,44 +43,33 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
 		List<String> rows = new ArrayList<>();
-		boolean inCave = plugin.inCorpCave;
 
-		// Rune pouch — show always (you need to fix it wherever you are)
+		// Rune pouch — show always
 		if (config.runePouchEnabled() && plugin.runePouchWarnings != null)
-		{
-			for (String warning : plugin.runePouchWarnings)
-				rows.add(warning);
-		}
+			for (String warning : plugin.runePouchWarnings) rows.add(warning);
 
-		// These only show inside the corp cave
-		if (inCave)
+		// Corp cave only
+		if (plugin.inCorpCave)
 		{
-			// Splasher tracking
 			if (config.tomeOfWaterEnabled())
 			{
-				if (plugin.tomeOfWaterNoData)
-					rows.add("Tome of Water: check tome");
-				else if (plugin.tomeOfWaterWarn)
-					rows.add("Tome of Water: " + plugin.tomeOfWaterCharges + " charges");
+				if (plugin.tomeOfWaterNoData) rows.add("Tome of Water: check tome");
+				else if (plugin.tomeOfWaterWarn) rows.add("Tome of Water: " + plugin.tomeOfWaterCharges + " charges");
 			}
 			if (config.serpHelmEnabled())
 			{
-				if (plugin.serpHelmNoData)
-					rows.add("Serp Helm: check helm");
-				else if (plugin.serpHelmWarn)
-					rows.add("Serp Helm: " + plugin.serpHelmCharges + " charges");
+				if (plugin.serpHelmNoData) rows.add("Serp Helm: check helm");
+				else if (plugin.serpHelmWarn) rows.add("Serp Helm: " + plugin.serpHelmCharges + " charges");
 			}
 			if (config.toxicStaffEnabled())
 			{
-				if (plugin.toxicStaffNoData)
-					rows.add("Toxic Staff: check staff");
-				else if (plugin.toxicStaffWarn)
-					rows.add("Toxic Staff: " + plugin.toxicStaffCharges + " charges");
+				if (plugin.toxicStaffNoData) rows.add("Toxic Staff: check staff");
+				else if (plugin.toxicStaffWarn) rows.add("Toxic Staff: " + plugin.toxicStaffCharges + " charges");
 			}
 		}
 
-		// These only show OUTSIDE the corp cave
-		if (!inCave)
+		// Outside all boss caves (bank/supply warnings)
+		if (!plugin.inCorpCave && !plugin.inKqCave && !plugin.inMoleLair && !plugin.inKbdLair)
 		{
 			if (config.zulrahScalesEnabled() && plugin.zulrahScalesWarn)
 				rows.add("Zulrah scales: " + plugin.zulrahScalesCount + " left");
@@ -114,18 +102,15 @@ public class CorpBoostingQOLWarningOverlay extends Overlay
 		for (int i = 0; i < rows.size(); i++)
 		{
 			String text = rows.get(i);
-			int rowY    = i * ROW_HEIGHT;
-
+			int rowY = i * ROW_HEIGHT;
 			if (i > 0)
 			{
 				g.setColor(config.warningOverlayColor().darker());
 				g.drawLine(0, rowY, BOX_WIDTH, rowY);
 			}
-
 			int maxWidth = BOX_WIDTH - PADDING_X * 2;
 			while (fm.stringWidth(text) > maxWidth && text.length() > 4)
 				text = text.substring(0, text.length() - 4) + "...";
-
 			g.setColor(TEXT_COLOR);
 			int ty = rowY + (ROW_HEIGHT - fm.getHeight()) / 2 + fm.getAscent();
 			g.drawString(text, PADDING_X, ty);

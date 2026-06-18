@@ -1,4 +1,4 @@
-package com.corpboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -9,14 +9,14 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 
 /**
- * Stub — combat idle overlay is now handled by CorpBoostingQOLAlertOverlay
+ * Stub — combat idle overlay is handled by PetBoostingQOLAlertOverlay
  * as a slice alongside vengeance, prayer, and spellbook alerts.
- * This class is kept for injection compatibility.
+ * Kept for injection compatibility.
  */
-public class CorpBoostingQOLCombatOverlay extends Overlay
+public class PetBoostingQOLCombatOverlay extends Overlay
 {
 	@Inject
-	public CorpBoostingQOLCombatOverlay()
+	public PetBoostingQOLCombatOverlay()
 	{
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);

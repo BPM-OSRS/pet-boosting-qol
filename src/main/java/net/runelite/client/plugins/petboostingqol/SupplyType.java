@@ -1,4 +1,4 @@
-package com.corpboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 public enum SupplyType
 {
@@ -18,5 +18,8 @@ public enum SupplyType
 	}
 
 	@Override
-	public String toString() { return displayName; }
+	public String toString()
+	{
+		return displayName;
+	}
 }
