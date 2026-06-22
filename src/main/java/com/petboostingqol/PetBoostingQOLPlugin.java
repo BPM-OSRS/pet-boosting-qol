@@ -875,6 +875,16 @@ public class PetBoostingQOLPlugin extends Plugin
 		return id == ITEM_TOXIC_STAFF || id == ITEM_TOXIC_STAFF_DMM;
 	}
 
+	private static final int ITEM_BLOOD_FURY = 22947;
+
+	private boolean bloodFuryEquipped()
+	{
+		ItemContainer equip = client.getItemContainer(InventoryID.EQUIPMENT);
+		if (equip == null) return false;
+		Item neck = equip.getItem(EquipmentInventorySlot.AMULET.getSlotIdx());
+		return neck != null && neck.getId() == ITEM_BLOOD_FURY;
+	}
+
 	private boolean tomeOfWaterEquipped()
 	{
 		ItemContainer equip = client.getItemContainer(InventoryID.EQUIPMENT);
@@ -1021,6 +1031,7 @@ public class PetBoostingQOLPlugin extends Plugin
 	private void decrementBloodFury()
 	{
 		if (!config.bloodFuryEnabled() || bloodFuryNoData || bloodFuryCharges <= 0) return;
+		if (!bloodFuryEquipped()) return;
 		bloodFuryCharges--;
 		saveBloodFuryCharges();
 		bloodFuryWarn = bloodFuryCharges < config.bloodFuryThreshold();
