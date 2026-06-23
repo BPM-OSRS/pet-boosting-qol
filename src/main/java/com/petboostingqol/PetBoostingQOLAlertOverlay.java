@@ -1,4 +1,4 @@
-package com.petboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -104,6 +104,16 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			if (config.kbdSpecEnabled() && plugin.kbdSpecWarn)          active.add(AlertType.KBD_SPEC);
 		}
 
+		if (plugin.inSireLair)
+		{
+			if (config.sireSpecEnabled() && plugin.sireSpecWarn)        active.add(AlertType.SIRE_SPEC);
+		}
+
+		if (plugin.inSmokeLair)
+		{
+			if (config.smokeSpecEnabled() && plugin.smokeSpecWarn)      active.add(AlertType.SMOKE_SPEC);
+		}
+
 		if (active.isEmpty()) return null;
 
 		Rectangle bounds = g.getClipBounds();
@@ -162,6 +172,8 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KBD_ANTIFIRE:     return config.kbdAntifireOverlayEnabled();
 			case KBD_POISON:       return config.kbdPoisonOverlayEnabled();
 			case KBD_SPEC:         return config.kbdSpecOverlayEnabled();
+			case SIRE_SPEC:        return config.sireSpecOverlayEnabled();
+			case SMOKE_SPEC:       return config.smokeSpecOverlayEnabled();
 			default:               return false;
 		}
 	}
@@ -186,6 +198,8 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KBD_ANTIFIRE:     return config.kbdAntifireIconEnabled();
 			case KBD_POISON:       return config.kbdPoisonIconEnabled();
 			case KBD_SPEC:         return config.kbdSpecIconEnabled();
+			case SIRE_SPEC:        return config.sireSpecIconEnabled();
+			case SMOKE_SPEC:       return config.smokeSpecIconEnabled();
 			default:               return false;
 		}
 	}
@@ -210,6 +224,8 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KBD_ANTIFIRE:     return config.kbdAntifireOverlayColor();
 			case KBD_POISON:       return config.kbdPoisonOverlayColor();
 			case KBD_SPEC:         return config.kbdSpecOverlayColor();
+			case SIRE_SPEC:        return config.sireSpecOverlayColor();
+			case SMOKE_SPEC:       return config.smokeSpecOverlayColor();
 			default:               return new Color(255, 0, 0, 100);
 		}
 	}
@@ -245,6 +261,8 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KQ_SPEC:
 			case MOLE_SPEC:
 			case KBD_SPEC:
+			case SIRE_SPEC:
+			case SMOKE_SPEC:
 				if (specIcon == null) specIcon = spriteManager.getSprite(SPRITE_SPEC, 0);
 				return scaleIcon(specIcon, size);
 
@@ -295,6 +313,10 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 		// Mole
 		MOLE_SATURATED, MOLE_SPEC,
 		// KBD
-		KBD_ANTIFIRE, KBD_POISON, KBD_SPEC
+		KBD_ANTIFIRE, KBD_POISON, KBD_SPEC,
+		// Sire
+		SIRE_SPEC,
+		// Smoke Devil
+		SMOKE_SPEC
 	}
 }

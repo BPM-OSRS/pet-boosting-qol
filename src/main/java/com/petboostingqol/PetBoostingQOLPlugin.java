@@ -1,4 +1,4 @@
-package com.petboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
@@ -41,18 +41,19 @@ import net.runelite.client.util.HotkeyListener;
 
 @PluginDescriptor(
 		name = "Pet Boosting QOL",
-		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, and King Black Dragon: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
-		tags = {"corp", "kq", "kalphite", "mole", "kbd", "boost", "vengeance", "combat", "overlay", "blood fury",
+		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, King Black Dragon, Abyssal Sire, and Thermonuclear Smoke Devil: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
+		tags = {"corp", "kq", "kalphite", "mole", "kbd", "sire", "abyssal", "smoke devil", "thermonuclear", "boost", "vengeance", "combat", "overlay", "blood fury",
 				"rune pouch", "corporeal beast", "splash", "tome", "serp", "toxic staff", "saturate", "antifire", "poison"}
 )
 @Slf4j
 public class PetBoostingQOLPlugin extends Plugin
 {
 	// Region IDs
-	static final int CORP_CAVE_REGION = 11844;
-	static final int KQ_CAVE_REGION   = 13972;
-	static final int MOLE_LAIR_REGION = 6993;
-	static final int KBD_LAIR_REGION  = 9033;
+	static final int CORP_CAVE_REGION  = 11844;
+	static final int KQ_CAVE_REGION    = 13972;
+	static final int MOLE_LAIR_REGION  = 6993;
+	static final int KBD_LAIR_REGION   = 9033;
+	static final int SMOKE_LAIR_REGION  = 9619;
 
 	// Shared constants
 	private static final int VENG_COOLDOWN_TICKS  = 50;
@@ -123,10 +124,12 @@ public class PetBoostingQOLPlugin extends Plugin
 	@Inject private net.runelite.client.callback.ClientThread clientThread;
 
 	// Boss location flags
-	boolean inCorpCave = false;
-	boolean inKqCave   = false;
-	boolean inMoleLair = false;
-	boolean inKbdLair  = false;
+	boolean inCorpCave  = false;
+	boolean inKqCave    = false;
+	boolean inMoleLair  = false;
+	boolean inKbdLair   = false;
+	boolean inSireLair  = false;
+	boolean inSmokeLair = false;
 
 	// Corp state
 	boolean inCombat        = false;
@@ -183,6 +186,12 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean kbdAntifireWarn      = false;
 	boolean kbdPoisoned          = false;
 	boolean kbdSpecWarn          = false;
+
+	// Sire state
+	boolean sireSpecWarn         = false;
+
+	// Smoke Devil state
+	boolean smokeSpecWarn        = false;
 
 	// Private fields
 	private boolean vengActive              = false;
@@ -327,6 +336,11 @@ public class PetBoostingQOLPlugin extends Plugin
 		kbdAntifireWarn      = false;
 		kbdPoisoned          = false;
 		kbdSpecWarn          = false;
+
+		sireSpecWarn         = false;
+		smokeSpecWarn        = false;
+		inSireLair           = false;
+		inSmokeLair          = false;
 	}
 
 	// Events
@@ -392,10 +406,13 @@ public class PetBoostingQOLPlugin extends Plugin
 
 		WorldPoint loc = client.getLocalPlayer().getWorldLocation();
 		int region = loc.getRegionID();
-		inCorpCave = region == CORP_CAVE_REGION;
-		inKqCave   = region == KQ_CAVE_REGION;
-		inMoleLair = region == MOLE_LAIR_REGION;
-		inKbdLair  = region == KBD_LAIR_REGION;
+		inCorpCave  = region == CORP_CAVE_REGION;
+		inKqCave    = region == KQ_CAVE_REGION;
+		inMoleLair  = region == MOLE_LAIR_REGION;
+		inKbdLair   = region == KBD_LAIR_REGION;
+		inSireLair  = region == 11850 || region == 11851 || region == 12106
+				|| region == 12362 || region == 12363;
+		inSmokeLair = region == SMOKE_LAIR_REGION;
 
 		// Lazy loaders
 		if (!bloodFuryLoaded && config.bloodFuryEnabled())
@@ -568,6 +585,34 @@ public class PetBoostingQOLPlugin extends Plugin
 			kbdPoisoned      = false;
 			kbdSpecWarn      = false;
 			kbdAntifireWarn  = false;
+		}
+
+		if (inSireLair)
+		{
+			if (config.sireSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) sireSpecWarn = true;
+				else sireSpecWarn = false;
+			}
+		}
+		else
+		{
+			sireSpecWarn = false;
+		}
+
+		if (inSmokeLair)
+		{
+			if (config.smokeSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) smokeSpecWarn = true;
+				else smokeSpecWarn = false;
+			}
+		}
+		else
+		{
+			smokeSpecWarn = false;
 		}
 	}
 

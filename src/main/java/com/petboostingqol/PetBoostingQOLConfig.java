@@ -1,4 +1,4 @@
-package com.petboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;
@@ -23,6 +23,12 @@ public interface PetBoostingQOLConfig extends Config
 
 	@ConfigSection(name = "King Black Dragon", description = "All KBD settings", position = 3, closedByDefault = true)
 	String kbdSection = "kbd";
+
+	@ConfigSection(name = "Abyssal Sire", description = "All Abyssal Sire settings", position = 4, closedByDefault = true)
+	String sireSection = "sire";
+
+	@ConfigSection(name = "Thermonuclear Smoke Devil", description = "All Smoke Devil settings", position = 5, closedByDefault = true)
+	String smokeSection = "smoke";
 
 	// CORP
 
@@ -725,6 +731,76 @@ public interface PetBoostingQOLConfig extends Config
 		description = "Colour of the 100% spec overlay at KBD",
 		section = kbdSection, position = 11)
 	default Color kbdSpecOverlayColor()
+	{
+		return new Color(255, 255, 100, 100);
+	}
+
+	// SIRE
+
+	@ConfigItem(keyName = "sireSpecEnabled", name = "Special attack 100% indicator",
+		description = "Show an alert when special attack energy is at 100% at Abyssal Sire",
+		section = sireSection, position = 0)
+	default boolean sireSpecEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sireSpecIconEnabled", name = "Special attack icon",
+		description = "Show the Energy Transfer spell icon when spec is at 100%",
+		section = sireSection, position = 1)
+	default boolean sireSpecIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sireSpecOverlayEnabled", name = "Special attack overlay",
+		description = "Show a fullscreen colour overlay when spec is at 100% at Abyssal Sire",
+		section = sireSection, position = 2)
+	default boolean sireSpecOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sireSpecOverlayColor", name = "Special attack overlay colour",
+		description = "Colour of the 100% spec overlay at Abyssal Sire",
+		section = sireSection, position = 3)
+	default Color sireSpecOverlayColor()
+	{
+		return new Color(255, 255, 100, 100);
+	}
+
+	// SMOKE DEVIL
+
+	@ConfigItem(keyName = "smokeSpecEnabled", name = "Special attack 100% indicator",
+		description = "Show an alert when special attack energy is at 100% at Thermonuclear Smoke Devil",
+		section = smokeSection, position = 0)
+	default boolean smokeSpecEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "smokeSpecIconEnabled", name = "Special attack icon",
+		description = "Show the Energy Transfer spell icon when spec is at 100%",
+		section = smokeSection, position = 1)
+	default boolean smokeSpecIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "smokeSpecOverlayEnabled", name = "Special attack overlay",
+		description = "Show a fullscreen colour overlay when spec is at 100% at Thermonuclear Smoke Devil",
+		section = smokeSection, position = 2)
+	default boolean smokeSpecOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "smokeSpecOverlayColor", name = "Special attack overlay colour",
+		description = "Colour of the 100% spec overlay at Thermonuclear Smoke Devil",
+		section = smokeSection, position = 3)
+	default Color smokeSpecOverlayColor()
 	{
 		return new Color(255, 255, 100, 100);
 	}

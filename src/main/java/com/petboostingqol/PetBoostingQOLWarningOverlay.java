@@ -1,4 +1,4 @@
-package com.petboostingqol;
+package net.runelite.client.plugins.petboostingqol;
 
 import java.awt.Color;
 import java.awt.Dimension;
