@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.petboostingqol;
+package com.petboostingqol;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;

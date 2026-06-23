@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.petboostingqol;
+package com.petboostingqol;
 
 import java.awt.Dimension;
 import java.awt.Graphics2D;

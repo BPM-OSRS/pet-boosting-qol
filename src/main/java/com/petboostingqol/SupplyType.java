@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.petboostingqol;
+package com.petboostingqol;
 
 public enum SupplyType
 {
