@@ -234,7 +234,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			@Override
 			public void hotkeyPressed()
 			{
-				isHotkeyHeld = true;
+				if (config.movementLockEnabled() || config.kqMovementLockEnabled())
+					isHotkeyHeld = true;
 			}
 			@Override
 			public void hotkeyReleased()

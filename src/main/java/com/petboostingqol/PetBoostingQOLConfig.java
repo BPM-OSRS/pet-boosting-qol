@@ -1,7 +1,6 @@
 package com.petboostingqol;
 
 import java.awt.Color;
-import java.awt.event.KeyEvent;
 import net.runelite.client.config.Alpha;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
@@ -63,7 +62,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 3)
 	default Color combatOverlayColor()
 	{
-		return new Color(255, 0, 0, 120);
+		return new Color(0x78817A7A, true);
 	}
 
 	@ConfigItem(keyName = "movementLockEnabled", name = "Movement lock",
@@ -79,7 +78,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 5)
 	default Keybind movementHoldKey()
 	{
-		return new Keybind(KeyEvent.VK_0, 0);
+		return Keybind.NOT_SET;
 	}
 
 	@ConfigItem(keyName = "vengEnabled", name = "Vengeance indicator",
