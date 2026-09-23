@@ -66,7 +66,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 1)
 	default boolean combatOverlayEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "combatIconEnabled", name = "Combat idle icon",
@@ -74,7 +74,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 2)
 	default boolean combatIconEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@Alpha
@@ -91,7 +91,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 4)
 	default boolean movementLockEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "movementHoldKey", name = "Hold key to walk",
@@ -107,7 +107,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 6)
 	default boolean vengEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "vengIconEnabled", name = "Vengeance icon",
@@ -115,7 +115,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 7)
 	default boolean vengIconEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "vengOverlayEnabled", name = "Vengeance overlay",
@@ -123,7 +123,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 8)
 	default boolean vengOverlayEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@Alpha
@@ -140,7 +140,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 10)
 	default boolean quickPrayerEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "prayerIconEnabled", name = "Quick prayer icon",
@@ -148,7 +148,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 11)
 	default boolean prayerIconEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "prayerOverlayEnabled", name = "Quick prayer overlay",
@@ -156,7 +156,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 12)
 	default boolean prayerOverlayEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@Alpha
@@ -173,7 +173,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 14)
 	default boolean lunarsEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "lunarIconEnabled", name = "Lunar spellbook icon",
@@ -181,7 +181,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 15)
 	default boolean lunarIconEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "lunarOverlayEnabled", name = "Lunar spellbook overlay",
@@ -189,7 +189,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 16)
 	default boolean lunarOverlayEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@Alpha
@@ -206,7 +206,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 18)
 	default boolean bloodFuryEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "bloodFuryThreshold", name = "Blood fury warn threshold",
@@ -222,7 +222,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 20)
 	default boolean runePouchEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "runePouchThreshold", name = "Rune pouch warn threshold",
@@ -238,7 +238,7 @@ public interface PetBoostingQOLConfig extends Config
 		section = corpSection, position = 22)
 	default boolean suppliesEnabled()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(keyName = "supplyType", name = "Supply type",
