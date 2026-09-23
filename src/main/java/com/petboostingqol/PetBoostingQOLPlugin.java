@@ -41,8 +41,10 @@ import net.runelite.client.util.HotkeyListener;
 
 @PluginDescriptor(
 		name = "Pet Boosting QOL",
-		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, King Black Dragon, Abyssal Sire, and Thermonuclear Smoke Devil: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
-		tags = {"corp", "kq", "kalphite", "mole", "kbd", "sire", "abyssal", "smoke devil", "thermonuclear", "boost", "vengeance", "combat", "overlay", "blood fury",
+		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, King Black Dragon, Abyssal Sire, Thermonuclear Smoke Devil, Scorpia, "
+				+ "K'ril Tsutsaroth, and Sarachnis: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
+		tags = {"corp", "kq", "kalphite", "mole", "kbd", "sire", "abyssal", "smoke devil", "thermonuclear", "scorpia", "zammy", "kril", "gwd",
+				"sarachnis", "boost", "vengeance", "combat", "overlay", "blood fury",
 				"rune pouch", "corporeal beast", "splash", "tome", "serp", "toxic staff", "saturate", "antifire", "poison"}
 )
 @Slf4j
@@ -55,6 +57,19 @@ public class PetBoostingQOLPlugin extends Plugin
 	static final int KBD_LAIR_REGION   = 9033;
 	static final int SMOKE_LAIR_REGION  = 9619;
 	static final int SCORPIA_LAIR_REGION = 12961;
+	static final int ZAMMY_ROOM_REGION = 11603;
+
+	// All of GWD (Bandos, Armadyl, Saradomin, Zamorak) shares this region, so region ID alone
+	// can't tell K'ril's room apart from the rest of the dungeon. isInKrilRoom() below is the
+	// real detection; region 11603 is kept as a fallback for as long as the box below is unset.
+	// Room corners: (2918,5331) (2918,5318) (2936,5318) (2936,5331), plane 2.
+	private static final int KRIL_ROOM_MIN_X = 2918;
+	private static final int KRIL_ROOM_MAX_X = 2936;
+	private static final int KRIL_ROOM_MIN_Y = 5318;
+	private static final int KRIL_ROOM_MAX_Y = 5331;
+	private static final int KRIL_ROOM_PLANE = 2;
+
+	static final int SARACHNIS_LAIR_REGION = 7322;
 
 	// Shared constants
 	private static final int VENG_COOLDOWN_TICKS  = 50;
@@ -131,6 +146,8 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean inSireLair  = false;
 	boolean inSmokeLair = false;
 	boolean inScorpiaLair = false;
+	boolean inZammyRoom = false;
+	boolean inSarachnisLair = false;
 
 	// Corp state
 	boolean inCombat        = false;
@@ -176,11 +193,25 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean kqLowPrayerWarn        = false;
 	boolean kqHpWarn               = false;
 
+	// Zammy (K'ril Tsutsaroth) state
+	boolean zammySaturatedWarn     = false;
+	boolean zammyPrayerRegenWarn   = false;
+	boolean zammyPoisoned          = false;
+	boolean zammyProtMeleeWarn     = false;
+	boolean zammyHpWarn            = false;
+
 	// Scorpia state
 	boolean scorpiaPrayerRegenWarn = false;
 	boolean scorpiaLowPrayerWarn   = false;
 	boolean scorpiaPoisoned        = false;
 	boolean scorpiaSpecWarn        = false;
+
+	// Sarachnis state
+	boolean sarachnisSaturatedWarn     = false;
+	boolean sarachnisPrayerRegenWarn   = false;
+	boolean sarachnisLowPrayerWarn     = false;
+	boolean sarachnisSpecWarn          = false;
+	boolean sarachnisProtRangeWarn     = false;
 
 	// Mole state
 	boolean moleSaturatedWarn      = false;
@@ -332,11 +363,25 @@ public class PetBoostingQOLPlugin extends Plugin
 		kqLowPrayerWarn        = false;
 		kqHpWarn               = false;
 
+		inZammyRoom            = false;
+		zammySaturatedWarn     = false;
+		zammyPrayerRegenWarn   = false;
+		zammyPoisoned          = false;
+		zammyProtMeleeWarn     = false;
+		zammyHpWarn            = false;
+
 		inScorpiaLair           = false;
 		scorpiaPrayerRegenWarn  = false;
 		scorpiaLowPrayerWarn    = false;
 		scorpiaPoisoned         = false;
 		scorpiaSpecWarn         = false;
+
+		inSarachnisLair            = false;
+		sarachnisSaturatedWarn     = false;
+		sarachnisPrayerRegenWarn   = false;
+		sarachnisLowPrayerWarn     = false;
+		sarachnisSpecWarn          = false;
+		sarachnisProtRangeWarn     = false;
 
 		moleSaturatedWarn      = false;
 		moleSpecWarn           = false;
@@ -364,10 +409,10 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (!bloodFuryNoData && bloodFuryCharges >= 0)
 				bloodFuryWarn = config.bloodFuryEnabled() && bloodFuryCharges < config.bloodFuryThreshold();
 			else if (bloodFuryCharges == -1)
-		{
-			bloodFuryNoData = true;
-			bloodFuryWarn = false;
-		}
+			{
+				bloodFuryNoData = true;
+				bloodFuryWarn = false;
+			}
 		}
 		if (key.equals("runePouchThreshold") || key.equals("runePouchEnabled"))
 			runePouchDirty = true;
@@ -422,6 +467,8 @@ public class PetBoostingQOLPlugin extends Plugin
 				|| region == 12362 || region == 12363;
 		inSmokeLair = region == SMOKE_LAIR_REGION;
 		inScorpiaLair = region == SCORPIA_LAIR_REGION;
+		inZammyRoom = isInKrilRoom(loc);
+		inSarachnisLair = SARACHNIS_LAIR_REGION >= 0 && region == SARACHNIS_LAIR_REGION;
 
 		// Lazy loaders
 		if (!bloodFuryLoaded && config.bloodFuryEnabled())
@@ -549,6 +596,31 @@ public class PetBoostingQOLPlugin extends Plugin
 			kqHpWarn        = false;
 		}
 
+		if (inZammyRoom)
+		{
+			if (config.zammySaturatedHeartEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
+				zammySaturatedWarn = !buffActive;
+			}
+			if (config.zammyPrayerRegenEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(VarbitID.PRAYER_REGENERATION_POTION_TIMER) > 0;
+				zammyPrayerRegenWarn = !buffActive;
+			}
+			zammyProtMeleeWarn = config.zammyProtMeleeEnabled() && !client.isPrayerActive(Prayer.PROTECT_FROM_MELEE);
+			zammyPoisoned       = config.zammyPoisonEnabled()    && client.getVarpValue(VarPlayerID.POISON) > 0;
+			zammyHpWarn         = config.zammyHpEnabled()        && client.getBoostedSkillLevel(Skill.HITPOINTS) <= config.zammyHpThreshold();
+		}
+		else
+		{
+			zammySaturatedWarn   = false;
+			zammyPrayerRegenWarn = false;
+			zammyProtMeleeWarn   = false;
+			zammyPoisoned        = false;
+			zammyHpWarn          = false;
+		}
+
 		if (inMoleLair)
 		{
 			if (config.moleSaturatedHeartEnabled())
@@ -642,6 +714,38 @@ public class PetBoostingQOLPlugin extends Plugin
 			scorpiaPoisoned        = false;
 			scorpiaSpecWarn        = false;
 		}
+
+		if (inSarachnisLair)
+		{
+			if (config.sarachnisSaturatedHeartEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
+				sarachnisSaturatedWarn = !buffActive;
+			}
+			if (config.sarachnisPrayerRegenEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(VarbitID.PRAYER_REGENERATION_POTION_TIMER) > 0;
+				sarachnisPrayerRegenWarn = !buffActive;
+			}
+			sarachnisLowPrayerWarn = config.sarachnisLowPrayerEnabled()
+					&& client.getBoostedSkillLevel(Skill.PRAYER) < config.sarachnisPrayerThreshold();
+			if (config.sarachnisSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) sarachnisSpecWarn = true;
+				else if (spec < 1000) sarachnisSpecWarn = false;
+			}
+			sarachnisProtRangeWarn = config.sarachnisProtRangeEnabled()
+					&& !client.isPrayerActive(Prayer.PROTECT_FROM_MISSILES);
+		}
+		else
+		{
+			sarachnisSaturatedWarn   = false;
+			sarachnisPrayerRegenWarn = false;
+			sarachnisLowPrayerWarn   = false;
+			sarachnisSpecWarn        = false;
+			sarachnisProtRangeWarn   = false;
+		}
 	}
 
 	@Subscribe
@@ -694,19 +798,19 @@ public class PetBoostingQOLPlugin extends Plugin
 			else if (param1 == WIDGET_EQUIP_TOXIC_STAFF) pendingScalesCheck = ScalesItem.STAFF;
 		}
 		if (inCorpCave && config.movementLockEnabled() && !isHotkeyHeld
-			&& event.getMenuAction() == MenuAction.WALK)
+				&& event.getMenuAction() == MenuAction.WALK)
 		{
 			event.consume();
 			return;
 		}
 		if (inKqCave && config.kqMovementLockEnabled() && !isHotkeyHeld
-			&& event.getMenuAction() == MenuAction.WALK)
+				&& event.getMenuAction() == MenuAction.WALK)
 		{
 			event.consume();
 			return;
 		}
 		if (inScorpiaLair && config.scorpiaMovementLockEnabled() && !isHotkeyHeld
-			&& event.getMenuAction() == MenuAction.WALK)
+				&& event.getMenuAction() == MenuAction.WALK)
 		{
 			event.consume();
 		}
@@ -871,6 +975,20 @@ public class PetBoostingQOLPlugin extends Plugin
 
 	}
 
+	// Returns whether the given point is inside K'ril's room. Falls back to the shared GWD
+	// region check until KRIL_ROOM_MIN_X/MAX_X/MIN_Y/MAX_Y above are filled in with real edges.
+	private boolean isInKrilRoom(WorldPoint loc)
+	{
+		boolean boxConfigured = KRIL_ROOM_MIN_X != KRIL_ROOM_MAX_X || KRIL_ROOM_MIN_Y != KRIL_ROOM_MAX_Y;
+		if (!boxConfigured)
+		{
+			return loc.getRegionID() == ZAMMY_ROOM_REGION;
+		}
+		return loc.getPlane() == KRIL_ROOM_PLANE
+				&& loc.getX() >= KRIL_ROOM_MIN_X && loc.getX() <= KRIL_ROOM_MAX_X
+				&& loc.getY() >= KRIL_ROOM_MIN_Y && loc.getY() <= KRIL_ROOM_MAX_Y;
+	}
+
 	// Splasher helpers
 	private void readSerpHelmVarbit()
 	{
@@ -959,19 +1077,19 @@ public class PetBoostingQOLPlugin extends Plugin
 	private void reevaluateTomeWarn()
 	{
 		tomeOfWaterWarn = config.tomeOfWaterEnabled() && !tomeOfWaterNoData
-			&& tomeOfWaterCharges >= 0 && tomeOfWaterCharges < config.tomeOfWaterThreshold();
+				&& tomeOfWaterCharges >= 0 && tomeOfWaterCharges < config.tomeOfWaterThreshold();
 	}
 
 	private void reevaluateSerpWarn()
 	{
 		serpHelmWarn = config.serpHelmEnabled() && !serpHelmNoData
-			&& serpHelmCharges >= 0 && serpHelmCharges < config.serpHelmThreshold();
+				&& serpHelmCharges >= 0 && serpHelmCharges < config.serpHelmThreshold();
 	}
 
 	private void reevaluateStaffWarn()
 	{
 		toxicStaffWarn = config.toxicStaffEnabled() && !toxicStaffNoData
-			&& toxicStaffCharges >= 0 && toxicStaffCharges < config.toxicStaffThreshold();
+				&& toxicStaffCharges >= 0 && toxicStaffCharges < config.toxicStaffThreshold();
 	}
 
 	// Supply checks
@@ -1131,7 +1249,7 @@ public class PetBoostingQOLPlugin extends Plugin
 			{
 				bloodFuryCharges = Integer.parseInt(val);
 				bloodFuryWarn = config.bloodFuryEnabled() && bloodFuryCharges >= 0
-					&& bloodFuryCharges < config.bloodFuryThreshold();
+						&& bloodFuryCharges < config.bloodFuryThreshold();
 				bloodFuryNoData = false;
 				bloodFuryLoaded = true;
 			}
@@ -1283,7 +1401,7 @@ public class PetBoostingQOLPlugin extends Plugin
 			{
 				supplyCount = Integer.parseInt(val);
 				supplyWarn = config.suppliesEnabled() && supplyCount >= 0
-					&& supplyCount < config.supplyThreshold();
+						&& supplyCount < config.supplyThreshold();
 			}
 			catch (NumberFormatException e)
 			{
@@ -1315,7 +1433,7 @@ public class PetBoostingQOLPlugin extends Plugin
 			{
 				houseTabCount = Integer.parseInt(val);
 				houseTabWarn = config.houseTabEnabled() && houseTabCount >= 0
-					&& houseTabCount < config.houseTabThreshold();
+						&& houseTabCount < config.houseTabThreshold();
 			}
 			catch (NumberFormatException e)
 			{
@@ -1347,7 +1465,7 @@ public class PetBoostingQOLPlugin extends Plugin
 			{
 				zulrahScalesCount = Integer.parseInt(val);
 				zulrahScalesWarn = config.zulrahScalesEnabled() && zulrahScalesCount >= 0
-					&& zulrahScalesCount < config.zulrahScalesThreshold();
+						&& zulrahScalesCount < config.zulrahScalesThreshold();
 			}
 			catch (NumberFormatException e)
 			{

@@ -44,6 +44,12 @@ public interface PetBoostingQOLConfig extends Config
 	@ConfigSection(name = "Scorpia", description = "All Scorpia settings", position = 6, closedByDefault = true)
 	String scorpiaSection = "scorpia";
 
+	@ConfigSection(name = "Zamorak (K'ril Tsutsaroth)", description = "All Zammy settings", position = 7, closedByDefault = true)
+	String zammySection = "zammy";
+
+	@ConfigSection(name = "Sarachnis", description = "All Sarachnis settings", position = 8, closedByDefault = true)
+	String sarachnisSection = "sarachnis";
+
 	// CORP
 
 	@Alpha
@@ -1008,5 +1014,355 @@ public interface PetBoostingQOLConfig extends Config
 	default Color scorpiaSpecOverlayColor()
 	{
 		return new Color(255, 255, 100, 100);
+	}
+
+	// ZAMMY (K'ril Tsutsaroth)
+
+	@ConfigItem(keyName = "zammySaturatedHeartEnabled", name = "Saturated Heart indicator",
+		description = "Show an alert when the Saturated Heart buff is not active (fires on entry and when buff expires)",
+		section = zammySection, position = 0)
+	default boolean zammySaturatedHeartEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammySaturatedIconEnabled", name = "Saturated Heart icon",
+		description = "Show the Saturated Heart item icon",
+		section = zammySection, position = 1)
+	default boolean zammySaturatedIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammySaturatedOverlayEnabled", name = "Saturated Heart overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = zammySection, position = 2)
+	default boolean zammySaturatedOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "zammySaturatedOverlayColor", name = "Saturated Heart overlay colour",
+		description = "Colour of the Saturated Heart overlay",
+		section = zammySection, position = 3)
+	default Color zammySaturatedOverlayColor()
+	{
+		return new Color(180, 100, 255, 100);
+	}
+
+	@ConfigItem(keyName = "zammyPrayerRegenEnabled", name = "Prayer Regen Potion indicator",
+		description = "Show an alert when Prayer Regen Potion buff is not active (fires on entry and when buff expires)",
+		section = zammySection, position = 4)
+	default boolean zammyPrayerRegenEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyPrayerRegenIconEnabled", name = "Prayer Regen Potion icon",
+		description = "Show a Prayer Regen Potion icon",
+		section = zammySection, position = 5)
+	default boolean zammyPrayerRegenIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyPrayerRegenOverlayEnabled", name = "Prayer Regen Potion overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = zammySection, position = 6)
+	default boolean zammyPrayerRegenOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "zammyPrayerRegenOverlayColor", name = "Prayer Regen Potion overlay colour",
+		description = "Colour of the Prayer Regen overlay",
+		section = zammySection, position = 7)
+	default Color zammyPrayerRegenOverlayColor()
+	{
+		return new Color(110, 60, 51, 100);
+	}
+
+	@ConfigItem(keyName = "zammyPoisonEnabled", name = "Poison indicator",
+		description = "Show an alert when you are poisoned at Zammy",
+		section = zammySection, position = 8)
+	default boolean zammyPoisonEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyPoisonIconEnabled", name = "Poison icon",
+		description = "Show the Araxyte venom sac icon when poisoned",
+		section = zammySection, position = 9)
+	default boolean zammyPoisonIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyPoisonOverlayEnabled", name = "Poison overlay",
+		description = "Show a fullscreen colour overlay when poisoned",
+		section = zammySection, position = 10)
+	default boolean zammyPoisonOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "zammyPoisonOverlayColor", name = "Poison overlay colour",
+		description = "Colour of the poison overlay",
+		section = zammySection, position = 11)
+	default Color zammyPoisonOverlayColor()
+	{
+		return new Color(60, 200, 60, 100);
+	}
+
+	@ConfigItem(keyName = "zammyProtMeleeEnabled", name = "Protect from Melee indicator",
+		description = "Show an alert when Protect from Melee is not active at Zammy",
+		section = zammySection, position = 12)
+	default boolean zammyProtMeleeEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyProtMeleeIconEnabled", name = "Protect from Melee icon",
+		description = "Show the Prayer skill icon when Protect from Melee is off",
+		section = zammySection, position = 13)
+	default boolean zammyProtMeleeIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyProtMeleeOverlayEnabled", name = "Protect from Melee overlay",
+		description = "Show a fullscreen colour overlay when Protect from Melee is off",
+		section = zammySection, position = 14)
+	default boolean zammyProtMeleeOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "zammyProtMeleeOverlayColor", name = "Protect from Melee overlay colour",
+		description = "Colour of the Protect from Melee overlay",
+		section = zammySection, position = 15)
+	default Color zammyProtMeleeOverlayColor()
+	{
+		return new Color(255, 255, 255, 80);
+	}
+
+	@ConfigItem(keyName = "zammyHpEnabled", name = "Low HP indicator",
+		description = "Show an alert when your hitpoints fall at or below the threshold at Zammy",
+		section = zammySection, position = 16)
+	default boolean zammyHpEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyHpIconEnabled", name = "Low HP icon",
+		description = "Show the Hitpoints skill icon when HP is at or below the threshold",
+		section = zammySection, position = 17)
+	default boolean zammyHpIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "zammyHpOverlayEnabled", name = "Low HP overlay",
+		description = "Show a fullscreen colour overlay when HP is at or below the threshold",
+		section = zammySection, position = 18)
+	default boolean zammyHpOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "zammyHpOverlayColor", name = "Low HP overlay colour",
+		description = "Colour of the low HP overlay",
+		section = zammySection, position = 19)
+	default Color zammyHpOverlayColor()
+	{
+		return new Color(255, 80, 80, 100);
+	}
+
+	@ConfigItem(keyName = "zammyHpThreshold", name = "HP threshold",
+		description = "Show a low HP warning when hitpoints fall at or below this number",
+		section = zammySection, position = 20)
+	default int zammyHpThreshold()
+	{
+		return 28;
+	}
+
+	// SARACHNIS
+
+	@ConfigItem(keyName = "sarachnisSaturatedHeartEnabled", name = "Saturated Heart indicator",
+		description = "Show an alert when the Saturated Heart buff is not active (fires on entry and when buff expires)",
+		section = sarachnisSection, position = 0)
+	default boolean sarachnisSaturatedHeartEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisSaturatedIconEnabled", name = "Saturated Heart icon",
+		description = "Show the Saturated Heart item icon",
+		section = sarachnisSection, position = 1)
+	default boolean sarachnisSaturatedIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisSaturatedOverlayEnabled", name = "Saturated Heart overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = sarachnisSection, position = 2)
+	default boolean sarachnisSaturatedOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sarachnisSaturatedOverlayColor", name = "Saturated Heart overlay colour",
+		description = "Colour of the Saturated Heart overlay at Sarachnis",
+		section = sarachnisSection, position = 3)
+	default Color sarachnisSaturatedOverlayColor()
+	{
+		return new Color(180, 100, 255, 100);
+	}
+
+	@ConfigItem(keyName = "sarachnisPrayerRegenEnabled", name = "Prayer Regen Potion indicator",
+		description = "Show an alert when Prayer Regen Potion buff is not active (fires on entry and when buff expires)",
+		section = sarachnisSection, position = 4)
+	default boolean sarachnisPrayerRegenEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisPrayerRegenIconEnabled", name = "Prayer Regen Potion icon",
+		description = "Show a Prayer Regen Potion icon",
+		section = sarachnisSection, position = 5)
+	default boolean sarachnisPrayerRegenIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisPrayerRegenOverlayEnabled", name = "Prayer Regen Potion overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = sarachnisSection, position = 6)
+	default boolean sarachnisPrayerRegenOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sarachnisPrayerRegenOverlayColor", name = "Prayer Regen Potion overlay colour",
+		description = "Colour of the Prayer Regen overlay at Sarachnis",
+		section = sarachnisSection, position = 7)
+	default Color sarachnisPrayerRegenOverlayColor()
+	{
+		return new Color(110, 60, 51, 100);
+	}
+
+	@ConfigItem(keyName = "sarachnisLowPrayerEnabled", name = "Low prayer indicator",
+		description = "Show an alert when your prayer points fall below the threshold at Sarachnis",
+		section = sarachnisSection, position = 8)
+	default boolean sarachnisLowPrayerEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisLowPrayerIconEnabled", name = "Low prayer icon",
+		description = "Show a Prayer Potion icon when prayer is low",
+		section = sarachnisSection, position = 9)
+	default boolean sarachnisLowPrayerIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisLowPrayerOverlayEnabled", name = "Low prayer overlay",
+		description = "Show a fullscreen colour overlay when prayer is low",
+		section = sarachnisSection, position = 10)
+	default boolean sarachnisLowPrayerOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sarachnisLowPrayerOverlayColor", name = "Low prayer overlay colour",
+		description = "Colour of the low prayer overlay",
+		section = sarachnisSection, position = 11)
+	default Color sarachnisLowPrayerOverlayColor()
+	{
+		return new Color(180, 180, 255, 100);
+	}
+
+	@ConfigItem(keyName = "sarachnisPrayerThreshold", name = "Prayer threshold",
+		description = "Show a prayer warning when prayer points fall below this number",
+		section = sarachnisSection, position = 12)
+	default int sarachnisPrayerThreshold()
+	{
+		return 5;
+	}
+
+	@ConfigItem(keyName = "sarachnisSpecEnabled", name = "Special attack 100% indicator",
+		description = "Show an alert when special attack energy is at 100% at Sarachnis",
+		section = sarachnisSection, position = 13)
+	default boolean sarachnisSpecEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisSpecIconEnabled", name = "Special attack icon",
+		description = "Show the Energy Transfer spell icon when spec is at 100%",
+		section = sarachnisSection, position = 14)
+	default boolean sarachnisSpecIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisSpecOverlayEnabled", name = "Special attack overlay",
+		description = "Show a fullscreen colour overlay when spec is at 100% at Sarachnis",
+		section = sarachnisSection, position = 15)
+	default boolean sarachnisSpecOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sarachnisSpecOverlayColor", name = "Special attack overlay colour",
+		description = "Colour of the 100% spec overlay at Sarachnis",
+		section = sarachnisSection, position = 16)
+	default Color sarachnisSpecOverlayColor()
+	{
+		return new Color(255, 255, 100, 100);
+	}
+
+	@ConfigItem(keyName = "sarachnisProtRangeEnabled", name = "Protect from Missiles indicator",
+		description = "Show an alert when Protect from Missiles is not active at Sarachnis",
+		section = sarachnisSection, position = 17)
+	default boolean sarachnisProtRangeEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisProtRangeIconEnabled", name = "Protect from Missiles icon",
+		description = "Show the Prayer skill icon when Protect from Missiles is off",
+		section = sarachnisSection, position = 18)
+	default boolean sarachnisProtRangeIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "sarachnisProtRangeOverlayEnabled", name = "Protect from Missiles overlay",
+		description = "Show a fullscreen colour overlay when Protect from Missiles is off",
+		section = sarachnisSection, position = 19)
+	default boolean sarachnisProtRangeOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "sarachnisProtRangeOverlayColor", name = "Protect from Missiles overlay colour",
+		description = "Colour of the Protect from Missiles overlay",
+		section = sarachnisSection, position = 20)
+	default Color sarachnisProtRangeOverlayColor()
+	{
+		return new Color(255, 255, 255, 80);
 	}
 }
