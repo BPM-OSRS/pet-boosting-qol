@@ -152,6 +152,15 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			if (config.sarachnisProtRangeEnabled() && plugin.sarachnisProtRangeWarn)         active.add(AlertType.SARACHNIS_PROT_RANGE);
 		}
 
+		if (plugin.inSaraRoom)
+		{
+			if (config.saraSaturatedHeartEnabled() && plugin.saraSaturatedWarn)   active.add(AlertType.SARA_SATURATED);
+			if (config.saraPrayerRegenEnabled() && plugin.saraPrayerRegenWarn)    active.add(AlertType.SARA_PRAYER_REGEN);
+			if (config.saraLowPrayerEnabled() && plugin.saraLowPrayerWarn)        active.add(AlertType.SARA_LOW_PRAYER);
+			if (config.saraSpecEnabled() && plugin.saraSpecWarn)                  active.add(AlertType.SARA_SPEC);
+			if (config.saraProtMageEnabled() && plugin.saraProtMageWarn)          active.add(AlertType.SARA_PROT_MAGE);
+		}
+
 		if (active.isEmpty()) return null;
 
 		blinkFrameCounter++;
@@ -319,6 +328,11 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case SARACHNIS_LOW_PRAYER:     return config.sarachnisLowPrayerOverlayEnabled();
 			case SARACHNIS_SPEC:           return config.sarachnisSpecOverlayEnabled();
 			case SARACHNIS_PROT_RANGE:     return config.sarachnisProtRangeOverlayEnabled();
+			case SARA_SATURATED:      return config.saraSaturatedOverlayEnabled();
+			case SARA_PRAYER_REGEN:   return config.saraPrayerRegenOverlayEnabled();
+			case SARA_LOW_PRAYER:     return config.saraLowPrayerOverlayEnabled();
+			case SARA_SPEC:           return config.saraSpecOverlayEnabled();
+			case SARA_PROT_MAGE:      return config.saraProtMageOverlayEnabled();
 			default:               return false;
 		}
 	}
@@ -360,6 +374,11 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case SARACHNIS_LOW_PRAYER:     return config.sarachnisLowPrayerIconEnabled();
 			case SARACHNIS_SPEC:           return config.sarachnisSpecIconEnabled();
 			case SARACHNIS_PROT_RANGE:     return config.sarachnisProtRangeIconEnabled();
+			case SARA_SATURATED:      return config.saraSaturatedIconEnabled();
+			case SARA_PRAYER_REGEN:   return config.saraPrayerRegenIconEnabled();
+			case SARA_LOW_PRAYER:     return config.saraLowPrayerIconEnabled();
+			case SARA_SPEC:           return config.saraSpecIconEnabled();
+			case SARA_PROT_MAGE:      return config.saraProtMageIconEnabled();
 			default:               return false;
 		}
 	}
@@ -401,6 +420,11 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case SARACHNIS_LOW_PRAYER:     return config.sarachnisLowPrayerOverlayColor();
 			case SARACHNIS_SPEC:           return config.sarachnisSpecOverlayColor();
 			case SARACHNIS_PROT_RANGE:     return config.sarachnisProtRangeOverlayColor();
+			case SARA_SATURATED:      return config.saraSaturatedOverlayColor();
+			case SARA_PRAYER_REGEN:   return config.saraPrayerRegenOverlayColor();
+			case SARA_LOW_PRAYER:     return config.saraLowPrayerOverlayColor();
+			case SARA_SPEC:           return config.saraSpecOverlayColor();
+			case SARA_PROT_MAGE:      return config.saraProtMageOverlayColor();
 			default:               return new Color(255, 0, 0, 100);
 		}
 	}
@@ -426,6 +450,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KQ_PROT_MAGE:
 			case ZAMMY_PROT_MELEE:
 			case SARACHNIS_PROT_RANGE:
+			case SARA_PROT_MAGE:
 				if (prayerIcon == null) prayerIcon = spriteManager.getSprite(SPRITE_PRAYER, 0);
 				return scaleIcon(prayerIcon, size);
 
@@ -433,6 +458,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case MOLE_SATURATED:
 			case ZAMMY_SATURATED:
 			case SARACHNIS_SATURATED:
+			case SARA_SATURATED:
 				if (saturatedHeartIcon == null)
 					saturatedHeartIcon = itemManager.getImage(ITEM_SATURATED_HEART, 1, false);
 				return scaleIcon(saturatedHeartIcon, size);
@@ -444,6 +470,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case SMOKE_SPEC:
 			case SCORPIA_SPEC:
 			case SARACHNIS_SPEC:
+			case SARA_SPEC:
 				if (specIcon == null) specIcon = spriteManager.getSprite(SPRITE_SPEC, 0);
 				return scaleIcon(specIcon, size);
 
@@ -456,6 +483,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case SCORPIA_PRAYER_REGEN:
 			case ZAMMY_PRAYER_REGEN:
 			case SARACHNIS_PRAYER_REGEN:
+			case SARA_PRAYER_REGEN:
 				if (prayerRegenIcon == null)
 					prayerRegenIcon = itemManager.getImage(ITEM_PRAYER_REGEN_1, 1, false);
 				return scaleIcon(prayerRegenIcon, size);
@@ -467,6 +495,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 			case KQ_LOW_PRAYER:
 			case SCORPIA_LOW_PRAYER:
 			case SARACHNIS_LOW_PRAYER:
+			case SARA_LOW_PRAYER:
 				if (prayerPotionIcon == null)
 					prayerPotionIcon = itemManager.getImage(ITEM_PRAYER_POTION_1, 1, false);
 				return scaleIcon(prayerPotionIcon, size);
@@ -507,6 +536,7 @@ public class PetBoostingQOLAlertOverlay extends Overlay
 		SCORPIA_PRAYER_REGEN, SCORPIA_LOW_PRAYER, SCORPIA_POISON, SCORPIA_SPEC,
 		SMOKE_SPEC,
 		ZAMMY_SATURATED, ZAMMY_PRAYER_REGEN, ZAMMY_PROT_MELEE, ZAMMY_POISON, ZAMMY_HP,
-		SARACHNIS_SATURATED, SARACHNIS_PRAYER_REGEN, SARACHNIS_LOW_PRAYER, SARACHNIS_SPEC, SARACHNIS_PROT_RANGE
+		SARACHNIS_SATURATED, SARACHNIS_PRAYER_REGEN, SARACHNIS_LOW_PRAYER, SARACHNIS_SPEC, SARACHNIS_PROT_RANGE,
+		SARA_SATURATED, SARA_PRAYER_REGEN, SARA_LOW_PRAYER, SARA_SPEC, SARA_PROT_MAGE
 	}
 }

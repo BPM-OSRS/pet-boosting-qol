@@ -50,6 +50,9 @@ public interface PetBoostingQOLConfig extends Config
 	@ConfigSection(name = "Sarachnis", description = "All Sarachnis settings", position = 8, closedByDefault = true)
 	String sarachnisSection = "sarachnis";
 
+	@ConfigSection(name = "Saradomin (Commander Zilyana)", description = "All Saradomin/Zilyana settings", position = 9, closedByDefault = true)
+	String saraSection = "sara";
+
 	// CORP
 
 	@Alpha
@@ -1362,6 +1365,181 @@ public interface PetBoostingQOLConfig extends Config
 		description = "Colour of the Protect from Missiles overlay",
 		section = sarachnisSection, position = 20)
 	default Color sarachnisProtRangeOverlayColor()
+	{
+		return new Color(255, 255, 255, 80);
+	}
+
+	// SARADOMIN (Commander Zilyana)
+
+	@ConfigItem(keyName = "saraSaturatedHeartEnabled", name = "Saturated Heart indicator",
+		description = "Show an alert when the Saturated Heart buff is not active (fires on entry and when buff expires)",
+		section = saraSection, position = 0)
+	default boolean saraSaturatedHeartEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraSaturatedIconEnabled", name = "Saturated Heart icon",
+		description = "Show the Saturated Heart item icon",
+		section = saraSection, position = 1)
+	default boolean saraSaturatedIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraSaturatedOverlayEnabled", name = "Saturated Heart overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = saraSection, position = 2)
+	default boolean saraSaturatedOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "saraSaturatedOverlayColor", name = "Saturated Heart overlay colour",
+		description = "Colour of the Saturated Heart overlay at Sara",
+		section = saraSection, position = 3)
+	default Color saraSaturatedOverlayColor()
+	{
+		return new Color(180, 100, 255, 100);
+	}
+
+	@ConfigItem(keyName = "saraPrayerRegenEnabled", name = "Prayer Regen Potion indicator",
+		description = "Show an alert when Prayer Regen Potion buff is not active (fires on entry and when buff expires)",
+		section = saraSection, position = 4)
+	default boolean saraPrayerRegenEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraPrayerRegenIconEnabled", name = "Prayer Regen Potion icon",
+		description = "Show a Prayer Regen Potion icon",
+		section = saraSection, position = 5)
+	default boolean saraPrayerRegenIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraPrayerRegenOverlayEnabled", name = "Prayer Regen Potion overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = saraSection, position = 6)
+	default boolean saraPrayerRegenOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "saraPrayerRegenOverlayColor", name = "Prayer Regen Potion overlay colour",
+		description = "Colour of the Prayer Regen overlay at Sara",
+		section = saraSection, position = 7)
+	default Color saraPrayerRegenOverlayColor()
+	{
+		return new Color(110, 60, 51, 100);
+	}
+
+	@ConfigItem(keyName = "saraLowPrayerEnabled", name = "Low prayer indicator",
+		description = "Show an alert when your prayer points fall below the threshold at Sara",
+		section = saraSection, position = 8)
+	default boolean saraLowPrayerEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraLowPrayerIconEnabled", name = "Low prayer icon",
+		description = "Show a Prayer Potion icon when prayer is low",
+		section = saraSection, position = 9)
+	default boolean saraLowPrayerIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraLowPrayerOverlayEnabled", name = "Low prayer overlay",
+		description = "Show a fullscreen colour overlay when prayer is low",
+		section = saraSection, position = 10)
+	default boolean saraLowPrayerOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "saraLowPrayerOverlayColor", name = "Low prayer overlay colour",
+		description = "Colour of the low prayer overlay",
+		section = saraSection, position = 11)
+	default Color saraLowPrayerOverlayColor()
+	{
+		return new Color(180, 180, 255, 100);
+	}
+
+	@ConfigItem(keyName = "saraPrayerThreshold", name = "Prayer threshold",
+		description = "Show a prayer warning when prayer points fall below this number",
+		section = saraSection, position = 12)
+	default int saraPrayerThreshold()
+	{
+		return 5;
+	}
+
+	@ConfigItem(keyName = "saraSpecEnabled", name = "Special attack 100% indicator",
+		description = "Show an alert when special attack energy is at 100% at Sara",
+		section = saraSection, position = 13)
+	default boolean saraSpecEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraSpecIconEnabled", name = "Special attack icon",
+		description = "Show the Energy Transfer spell icon when spec is at 100%",
+		section = saraSection, position = 14)
+	default boolean saraSpecIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraSpecOverlayEnabled", name = "Special attack overlay",
+		description = "Show a fullscreen colour overlay when spec is at 100% at Sara",
+		section = saraSection, position = 15)
+	default boolean saraSpecOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "saraSpecOverlayColor", name = "Special attack overlay colour",
+		description = "Colour of the 100% spec overlay at Sara",
+		section = saraSection, position = 16)
+	default Color saraSpecOverlayColor()
+	{
+		return new Color(255, 255, 100, 100);
+	}
+
+	@ConfigItem(keyName = "saraProtMageEnabled", name = "Protect from Magic indicator",
+		description = "Show an alert when Protect from Magic is not active at Saradomin",
+		section = saraSection, position = 17)
+	default boolean saraProtMageEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraProtMageIconEnabled", name = "Protect from Magic icon",
+		description = "Show the Prayer skill icon when Protect from Magic is off",
+		section = saraSection, position = 18)
+	default boolean saraProtMageIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "saraProtMageOverlayEnabled", name = "Protect from Magic overlay",
+		description = "Show a fullscreen colour overlay when Protect from Magic is off",
+		section = saraSection, position = 19)
+	default boolean saraProtMageOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "saraProtMageOverlayColor", name = "Protect from Magic overlay colour",
+		description = "Colour of the Protect from Magic overlay",
+		section = saraSection, position = 20)
+	default Color saraProtMageOverlayColor()
 	{
 		return new Color(255, 255, 255, 80);
 	}

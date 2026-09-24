@@ -42,9 +42,9 @@ import net.runelite.client.util.HotkeyListener;
 @PluginDescriptor(
 		name = "Pet Boosting QOL",
 		description = "Boosting QOL for Corp, Kalphite Queen, Giant Mole, King Black Dragon, Abyssal Sire, Thermonuclear Smoke Devil, Scorpia, "
-				+ "K'ril Tsutsaroth, and Sarachnis: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
+				+ "K'ril Tsutsaroth, Sarachnis, and Commander Zilyana: combat overlays, vengeance/prayer/spec indicators, heart/antifire/poison timers, and supply tracking.",
 		tags = {"corp", "kq", "kalphite", "mole", "kbd", "sire", "abyssal", "smoke devil", "thermonuclear", "scorpia", "zammy", "kril", "gwd",
-				"sarachnis", "boost", "vengeance", "combat", "overlay", "blood fury",
+				"sarachnis", "sara", "saradomin", "zilyana", "boost", "vengeance", "combat", "overlay", "blood fury",
 				"rune pouch", "corporeal beast", "splash", "tome", "serp", "toxic staff", "saturate", "antifire", "poison"}
 )
 @Slf4j
@@ -68,6 +68,14 @@ public class PetBoostingQOLPlugin extends Plugin
 	private static final int KRIL_ROOM_MIN_Y = 5318;
 	private static final int KRIL_ROOM_MAX_Y = 5331;
 	private static final int KRIL_ROOM_PLANE = 2;
+
+	// Saradomin's room (Commander Zilyana) is also inside GWD. isInSaraRoom() below is the real
+	// detection, using the captured room corners below (region 11602, distinct from K'ril's 11603).
+	private static final int SARA_ROOM_MIN_X = 2889;
+	private static final int SARA_ROOM_MAX_X = 2907;
+	private static final int SARA_ROOM_MIN_Y = 5253;
+	private static final int SARA_ROOM_MAX_Y = 5275;
+	private static final int SARA_ROOM_PLANE = 0;
 
 	static final int SARACHNIS_LAIR_REGION = 7322;
 
@@ -148,6 +156,7 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean inScorpiaLair = false;
 	boolean inZammyRoom = false;
 	boolean inSarachnisLair = false;
+	boolean inSaraRoom = false;
 
 	// Corp state
 	boolean inCombat        = false;
@@ -212,6 +221,13 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean sarachnisLowPrayerWarn     = false;
 	boolean sarachnisSpecWarn          = false;
 	boolean sarachnisProtRangeWarn     = false;
+
+	// Saradomin (Commander Zilyana) state
+	boolean saraSaturatedWarn     = false;
+	boolean saraPrayerRegenWarn   = false;
+	boolean saraLowPrayerWarn     = false;
+	boolean saraSpecWarn          = false;
+	boolean saraProtMageWarn      = false;
 
 	// Mole state
 	boolean moleSaturatedWarn      = false;
@@ -383,6 +399,13 @@ public class PetBoostingQOLPlugin extends Plugin
 		sarachnisSpecWarn          = false;
 		sarachnisProtRangeWarn     = false;
 
+		inSaraRoom             = false;
+		saraSaturatedWarn      = false;
+		saraPrayerRegenWarn    = false;
+		saraLowPrayerWarn      = false;
+		saraSpecWarn           = false;
+		saraProtMageWarn       = false;
+
 		moleSaturatedWarn      = false;
 		moleSpecWarn           = false;
 
@@ -469,6 +492,7 @@ public class PetBoostingQOLPlugin extends Plugin
 		inScorpiaLair = region == SCORPIA_LAIR_REGION;
 		inZammyRoom = isInKrilRoom(loc);
 		inSarachnisLair = SARACHNIS_LAIR_REGION >= 0 && region == SARACHNIS_LAIR_REGION;
+		inSaraRoom = isInSaraRoom(loc);
 
 		// Lazy loaders
 		if (!bloodFuryLoaded && config.bloodFuryEnabled())
@@ -746,6 +770,37 @@ public class PetBoostingQOLPlugin extends Plugin
 			sarachnisSpecWarn        = false;
 			sarachnisProtRangeWarn   = false;
 		}
+
+		if (inSaraRoom)
+		{
+			if (config.saraSaturatedHeartEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
+				saraSaturatedWarn = !buffActive;
+			}
+			if (config.saraPrayerRegenEnabled())
+			{
+				boolean buffActive = client.getVarbitValue(VarbitID.PRAYER_REGENERATION_POTION_TIMER) > 0;
+				saraPrayerRegenWarn = !buffActive;
+			}
+			saraLowPrayerWarn = config.saraLowPrayerEnabled()
+					&& client.getBoostedSkillLevel(Skill.PRAYER) < config.saraPrayerThreshold();
+			if (config.saraSpecEnabled())
+			{
+				int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+				if (spec >= 1000) saraSpecWarn = true;
+				else if (spec < 1000) saraSpecWarn = false;
+			}
+			saraProtMageWarn = config.saraProtMageEnabled() && !client.isPrayerActive(Prayer.PROTECT_FROM_MAGIC);
+		}
+		else
+		{
+			saraSaturatedWarn   = false;
+			saraPrayerRegenWarn = false;
+			saraLowPrayerWarn   = false;
+			saraSpecWarn        = false;
+			saraProtMageWarn    = false;
+		}
 	}
 
 	@Subscribe
@@ -987,6 +1042,20 @@ public class PetBoostingQOLPlugin extends Plugin
 		return loc.getPlane() == KRIL_ROOM_PLANE
 				&& loc.getX() >= KRIL_ROOM_MIN_X && loc.getX() <= KRIL_ROOM_MAX_X
 				&& loc.getY() >= KRIL_ROOM_MIN_Y && loc.getY() <= KRIL_ROOM_MAX_Y;
+	}
+
+	// Returns whether the given point is inside Saradomin's (Zilyana's) room. Stays false until
+	// SARA_ROOM_MIN_X/MAX_X/MIN_Y/MAX_Y above are filled in with real edges.
+	private boolean isInSaraRoom(WorldPoint loc)
+	{
+		boolean boxConfigured = SARA_ROOM_MIN_X != SARA_ROOM_MAX_X || SARA_ROOM_MIN_Y != SARA_ROOM_MAX_Y;
+		if (!boxConfigured)
+		{
+			return false;
+		}
+		return loc.getPlane() == SARA_ROOM_PLANE
+				&& loc.getX() >= SARA_ROOM_MIN_X && loc.getX() <= SARA_ROOM_MAX_X
+				&& loc.getY() >= SARA_ROOM_MIN_Y && loc.getY() <= SARA_ROOM_MAX_Y;
 	}
 
 	// Splasher helpers
