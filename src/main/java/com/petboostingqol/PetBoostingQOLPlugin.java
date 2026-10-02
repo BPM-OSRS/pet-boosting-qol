@@ -59,18 +59,15 @@ public class PetBoostingQOLPlugin extends Plugin
 	static final int SCORPIA_LAIR_REGION = 12961;
 	static final int ZAMMY_ROOM_REGION = 11603;
 
-	// All of GWD (Bandos, Armadyl, Saradomin, Zamorak) shares this region, so region ID alone
-	// can't tell K'ril's room apart from the rest of the dungeon. isInKrilRoom() below is the
-	// real detection; region 11603 is kept as a fallback for as long as the box below is unset.
-	// Room corners: (2918,5331) (2918,5318) (2936,5318) (2936,5331), plane 2.
+	// Region 11603 covers all of GWD, not just K'ril's room; isInKrilRoom() does the real check.
+	// Corners: (2918,5331) (2918,5318) (2936,5318) (2936,5331), plane 2.
 	private static final int KRIL_ROOM_MIN_X = 2918;
 	private static final int KRIL_ROOM_MAX_X = 2936;
 	private static final int KRIL_ROOM_MIN_Y = 5318;
 	private static final int KRIL_ROOM_MAX_Y = 5331;
 	private static final int KRIL_ROOM_PLANE = 2;
 
-	// Saradomin's room (Commander Zilyana) is also inside GWD. isInSaraRoom() below is the real
-	// detection, using the captured room corners below (region 11602, distinct from K'ril's 11603).
+	// Also inside GWD; isInSaraRoom() does the real check against these corners.
 	private static final int SARA_ROOM_MIN_X = 2889;
 	private static final int SARA_ROOM_MAX_X = 2907;
 	private static final int SARA_ROOM_MIN_Y = 5253;
@@ -86,7 +83,8 @@ public class PetBoostingQOLPlugin extends Plugin
 	private static final int LUNAR_SPELLBOOK       = 2;
 	private static final int SPEC_ENERGY_VARPLAYER = 300;
 
-	private static final int SATURATED_HEART_VARBIT = 14704; // ticks remaining on the buff; 0 = expired
+	private static final int SATURATED_HEART_VARBIT = 14704; // ticks left on the active boost
+	private static final int SATURATED_HEART_COOLDOWN_VARBIT = 5361; // recharge cooldown; must hit 0 to redrink
 
 	// Corp-specific constants
 	private static final int COMBAT_IDLE_TIMEOUT   = 10;
@@ -141,6 +139,7 @@ public class PetBoostingQOLPlugin extends Plugin
 	@Inject private PetBoostingQOLCombatOverlay combatOverlay;
 	@Inject private PetBoostingQOLWarningOverlay warningOverlay;
 	@Inject private PetBoostingQOLAlertOverlay alertOverlay;
+	@Inject private PetBoostingQOLCompactOverlay compactOverlay;
 	@Inject private PetBoostingQOLConfig config;
 	@Inject private ConfigManager configManager;
 	@Inject private KeyManager keyManager;
@@ -279,6 +278,7 @@ public class PetBoostingQOLPlugin extends Plugin
 		overlayManager.add(combatOverlay);
 		overlayManager.add(warningOverlay);
 		overlayManager.add(alertOverlay);
+		overlayManager.add(compactOverlay);
 
 		hotkeyListener = new HotkeyListener(() -> config.movementHoldKey())
 		{
@@ -311,6 +311,7 @@ public class PetBoostingQOLPlugin extends Plugin
 		overlayManager.remove(combatOverlay);
 		overlayManager.remove(warningOverlay);
 		overlayManager.remove(alertOverlay);
+		overlayManager.remove(compactOverlay);
 		keyManager.unregisterKeyListener(hotkeyListener);
 		hotkeyListener = null;
 		resetState();
@@ -592,7 +593,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (config.kqSaturatedHeartEnabled())
 			{
 				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
-				kqSaturatedWarn = !buffActive;
+				boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+				kqSaturatedWarn = !buffActive && !onCooldown;
 			}
 			if (config.kqPrayerRegenEnabled())
 			{
@@ -625,7 +627,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (config.zammySaturatedHeartEnabled())
 			{
 				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
-				zammySaturatedWarn = !buffActive;
+				boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+				zammySaturatedWarn = !buffActive && !onCooldown;
 			}
 			if (config.zammyPrayerRegenEnabled())
 			{
@@ -650,7 +653,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (config.moleSaturatedHeartEnabled())
 			{
 				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
-				moleSaturatedWarn = !buffActive;
+				boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+				moleSaturatedWarn = !buffActive && !onCooldown;
 			}
 			if (config.moleSpecEnabled())
 			{
@@ -744,7 +748,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (config.sarachnisSaturatedHeartEnabled())
 			{
 				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
-				sarachnisSaturatedWarn = !buffActive;
+				boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+				sarachnisSaturatedWarn = !buffActive && !onCooldown;
 			}
 			if (config.sarachnisPrayerRegenEnabled())
 			{
@@ -776,7 +781,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			if (config.saraSaturatedHeartEnabled())
 			{
 				boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
-				saraSaturatedWarn = !buffActive;
+				boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+				saraSaturatedWarn = !buffActive && !onCooldown;
 			}
 			if (config.saraPrayerRegenEnabled())
 			{
@@ -1030,8 +1036,6 @@ public class PetBoostingQOLPlugin extends Plugin
 
 	}
 
-	// Returns whether the given point is inside K'ril's room. Falls back to the shared GWD
-	// region check until KRIL_ROOM_MIN_X/MAX_X/MIN_Y/MAX_Y above are filled in with real edges.
 	private boolean isInKrilRoom(WorldPoint loc)
 	{
 		boolean boxConfigured = KRIL_ROOM_MIN_X != KRIL_ROOM_MAX_X || KRIL_ROOM_MIN_Y != KRIL_ROOM_MAX_Y;
@@ -1044,8 +1048,6 @@ public class PetBoostingQOLPlugin extends Plugin
 				&& loc.getY() >= KRIL_ROOM_MIN_Y && loc.getY() <= KRIL_ROOM_MAX_Y;
 	}
 
-	// Returns whether the given point is inside Saradomin's (Zilyana's) room. Stays false until
-	// SARA_ROOM_MIN_X/MAX_X/MIN_Y/MAX_Y above are filled in with real edges.
 	private boolean isInSaraRoom(WorldPoint loc)
 	{
 		boolean boxConfigured = SARA_ROOM_MIN_X != SARA_ROOM_MAX_X || SARA_ROOM_MIN_Y != SARA_ROOM_MAX_Y;

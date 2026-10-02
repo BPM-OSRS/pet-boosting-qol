@@ -27,8 +27,7 @@ public class PetBoostingQOLWarningOverlay extends Overlay
 	private final PetBoostingQOLPlugin plugin;
 	private final PetBoostingQOLConfig config;
 
-	// Cached background (rounded fill + border + row separators), rebuilt
-	// only when row count or color changes.
+	// Cached background, rebuilt only when row count or color changes.
 	private CachedBackground backgroundCache;
 
 	@Inject

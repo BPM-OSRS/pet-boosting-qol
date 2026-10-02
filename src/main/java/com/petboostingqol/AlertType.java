@@ -1,0 +1,21 @@
+package com.petboostingqol;
+/**
+ * Every boss-specific alert condition the plugin can show, across the fullscreen
+ * overlay (PetBoostingQOLAlertOverlay) and the compact box overlay
+ * (PetBoostingQOLCompactOverlay). Extracted to its own file so both overlays —
+ * and the shared lookup logic in AlertRegistry — can reference it without one
+ * overlay depending on the other's internals.
+ */
+enum AlertType
+{
+	CORP_COMBAT_IDLE, CORP_VENG, CORP_PRAYER, CORP_LUNAR,
+	KQ_VENG, KQ_SATURATED, KQ_PROT_MAGE, KQ_SPEC, KQ_PRAYER_REGEN, KQ_POISON, KQ_LOW_PRAYER, KQ_HP,
+	MOLE_SATURATED, MOLE_SPEC,
+	KBD_ANTIFIRE, KBD_POISON, KBD_SPEC,
+	SIRE_SPEC,
+	SCORPIA_PRAYER_REGEN, SCORPIA_LOW_PRAYER, SCORPIA_POISON, SCORPIA_SPEC,
+	SMOKE_SPEC,
+	ZAMMY_SATURATED, ZAMMY_PRAYER_REGEN, ZAMMY_PROT_MELEE, ZAMMY_POISON, ZAMMY_HP,
+	SARACHNIS_SATURATED, SARACHNIS_PRAYER_REGEN, SARACHNIS_LOW_PRAYER, SARACHNIS_SPEC, SARACHNIS_PROT_RANGE,
+	SARA_SATURATED, SARA_PRAYER_REGEN, SARA_LOW_PRAYER, SARA_SPEC, SARA_PROT_MAGE
+}

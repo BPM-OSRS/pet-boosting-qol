@@ -9,9 +9,8 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 
 /**
- * Stub — combat idle overlay is handled by PetBoostingQOLAlertOverlay
- * as a slice alongside vengeance, prayer, and spellbook alerts.
- * Kept for injection compatibility.
+ * Unused now; combat idle alerts are drawn by PetBoostingQOLAlertOverlay instead.
+ * Kept so Guice injection still resolves.
  */
 public class PetBoostingQOLCombatOverlay extends Overlay
 {

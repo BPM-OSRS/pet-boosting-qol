@@ -11,14 +11,17 @@ import net.runelite.client.config.Keybind;
 @ConfigGroup("petboostingqol")
 public interface PetBoostingQOLConfig extends Config
 {
-	@ConfigSection(name = "Performance", description = "General performance settings", position = -1, closedByDefault = true)
+	@ConfigSection(name = "Overlay Settings", description = "Settings for how the alert overlay looks and behaves", position = -1, closedByDefault = true)
 	String perfSection = "perf";
 
-	@ConfigItem(keyName = "lowCpuMode", name = "Low CPU mode (flashing overlays)",
-		description = "Makes the fullscreen alert overlays flash on/off instead of drawing solid every frame, "
-			+ "cutting their average rendering cost roughly in half. Icons still show constantly either way.",
+	@ConfigItem(keyName = "compactOverlayModeEnabled", name = "Adjustable alert box",
+		description = "Replace the fullscreen overlay with a small box instead. Hold Alt and drag it to move it "
+			+ "anywhere on screen, or drag a corner to resize it, same as any other movable/resizable RuneLite overlay. "
+			+ "When more than one alert is active at once it splits into up to 4 quadrants (one per alert); each "
+			+ "quadrant uses whatever colour/icon settings are already set for that alert elsewhere in this config, "
+			+ "so you can still mix icon-only, colour-only, or both per alert type.",
 		section = perfSection, position = 0)
-	default boolean lowCpuMode()
+	default boolean compactOverlayModeEnabled()
 	{
 		return false;
 	}
