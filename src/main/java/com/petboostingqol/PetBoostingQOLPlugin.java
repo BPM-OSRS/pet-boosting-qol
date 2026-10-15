@@ -163,6 +163,13 @@ public class PetBoostingQOLPlugin extends Plugin
 	boolean lunarsWarn      = false;
 	boolean quickPrayerWarn = false;
 
+	// Everywhere state (not gated to a boss location)
+	boolean everywhereSaturatedWarn    = false;
+	boolean everywherePrayerRegenWarn  = false;
+	boolean everywhereLowPrayerWarn    = false;
+	boolean everywhereSpecWarn         = false;
+	boolean everywhereAntifireWarn     = false;
+
 	int     bloodFuryCharges = -1;
 	boolean bloodFuryWarn    = false;
 	boolean bloodFuryNoData  = true;
@@ -285,7 +292,8 @@ public class PetBoostingQOLPlugin extends Plugin
 			@Override
 			public void hotkeyPressed()
 			{
-				if (config.movementLockEnabled() || config.kqMovementLockEnabled())
+				if (config.movementLockEnabled() || config.kqMovementLockEnabled()
+						|| config.scorpiaMovementLockEnabled() || config.everywhereMovementLockEnabled())
 					isHotkeyHeld = true;
 			}
 			@Override
@@ -329,6 +337,11 @@ public class PetBoostingQOLPlugin extends Plugin
 		vengReady         = false;
 		lunarsWarn        = false;
 		quickPrayerWarn   = false;
+		everywhereSaturatedWarn   = false;
+		everywherePrayerRegenWarn = false;
+		everywhereLowPrayerWarn   = false;
+		everywhereSpecWarn        = false;
+		everywhereAntifireWarn    = false;
 		vengCooldownTicks = 0;
 		combatIdleTicks   = 0;
 		bloodFuryCharges  = -1;
@@ -547,6 +560,31 @@ public class PetBoostingQOLPlugin extends Plugin
 
 		if (config.quickPrayerEnabled())
 			quickPrayerWarn = client.getVarbitValue(Varbits.QUICK_PRAYER) == 0;
+
+		if (config.everywhereSaturatedHeartEnabled())
+		{
+			boolean buffActive = client.getVarbitValue(SATURATED_HEART_VARBIT) > 0;
+			boolean onCooldown = client.getVarbitValue(SATURATED_HEART_COOLDOWN_VARBIT) > 0;
+			everywhereSaturatedWarn = !buffActive && !onCooldown;
+		}
+		if (config.everywherePrayerRegenEnabled())
+		{
+			boolean buffActive = client.getVarbitValue(VarbitID.PRAYER_REGENERATION_POTION_TIMER) > 0;
+			everywherePrayerRegenWarn = !buffActive;
+		}
+		if (config.everywhereLowPrayerEnabled())
+			everywhereLowPrayerWarn = client.getBoostedSkillLevel(Skill.PRAYER) < config.everywherePrayerThreshold();
+		if (config.everywhereSpecEnabled())
+		{
+			int spec = client.getVarpValue(SPEC_ENERGY_VARPLAYER);
+			if (spec >= 1000) everywhereSpecWarn = true;
+			else if (spec < 1000) everywhereSpecWarn = false;
+		}
+		if (config.everywhereAntifireEnabled())
+		{
+			boolean buffActive = client.getVarbitValue(VarbitID.ANTIFIRE_POTION) > 0;
+			everywhereAntifireWarn = !buffActive;
+		}
 
 		lunarsWarn = inCorpCave && config.lunarsEnabled()
 				&& client.getVarbitValue(SPELLBOOK_VARBIT) != LUNAR_SPELLBOOK;
@@ -871,6 +909,12 @@ public class PetBoostingQOLPlugin extends Plugin
 			return;
 		}
 		if (inScorpiaLair && config.scorpiaMovementLockEnabled() && !isHotkeyHeld
+				&& event.getMenuAction() == MenuAction.WALK)
+		{
+			event.consume();
+			return;
+		}
+		if (config.everywhereMovementLockEnabled() && !isHotkeyHeld
 				&& event.getMenuAction() == MenuAction.WALK)
 		{
 			event.consume();

@@ -1,7 +1,7 @@
 package com.petboostingqol;
 /**
- * Every boss-specific alert condition the plugin can show, across the fullscreen
- * overlay (PetBoostingQOLAlertOverlay) and the compact box overlay
+ * Every alert condition the plugin can show, across the fullscreen overlay
+ * (PetBoostingQOLAlertOverlay) and the compact box overlay
  * (PetBoostingQOLCompactOverlay). Extracted to its own file so both overlays —
  * and the shared lookup logic in AlertRegistry — can reference it without one
  * overlay depending on the other's internals.
@@ -17,5 +17,6 @@ enum AlertType
 	SMOKE_SPEC,
 	ZAMMY_SATURATED, ZAMMY_PRAYER_REGEN, ZAMMY_PROT_MELEE, ZAMMY_POISON, ZAMMY_HP,
 	SARACHNIS_SATURATED, SARACHNIS_PRAYER_REGEN, SARACHNIS_LOW_PRAYER, SARACHNIS_SPEC, SARACHNIS_PROT_RANGE,
-	SARA_SATURATED, SARA_PRAYER_REGEN, SARA_LOW_PRAYER, SARA_SPEC, SARA_PROT_MAGE
+	SARA_SATURATED, SARA_PRAYER_REGEN, SARA_LOW_PRAYER, SARA_SPEC, SARA_PROT_MAGE,
+	EVERYWHERE_SATURATED, EVERYWHERE_PRAYER_REGEN, EVERYWHERE_LOW_PRAYER, EVERYWHERE_SPEC, EVERYWHERE_ANTIFIRE
 }

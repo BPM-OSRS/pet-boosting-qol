@@ -114,6 +114,7 @@ class AlertIconProvider
 			case ZAMMY_SATURATED:
 			case SARACHNIS_SATURATED:
 			case SARA_SATURATED:
+			case EVERYWHERE_SATURATED:
 				if (saturatedHeartIcon == null)
 					saturatedHeartIcon = itemManager.getImage(ITEM_SATURATED_HEART, 1, false);
 				return scaleIcon(saturatedHeartIcon, size);
@@ -126,6 +127,7 @@ class AlertIconProvider
 			case SCORPIA_SPEC:
 			case SARACHNIS_SPEC:
 			case SARA_SPEC:
+			case EVERYWHERE_SPEC:
 				if (specIcon == null) specIcon = spriteManager.getSprite(SPRITE_SPEC, 0);
 				return scaleIcon(specIcon, size);
 
@@ -139,6 +141,7 @@ class AlertIconProvider
 			case ZAMMY_PRAYER_REGEN:
 			case SARACHNIS_PRAYER_REGEN:
 			case SARA_PRAYER_REGEN:
+			case EVERYWHERE_PRAYER_REGEN:
 				if (prayerRegenIcon == null)
 					prayerRegenIcon = itemManager.getImage(ITEM_PRAYER_REGEN_1, 1, false);
 				return scaleIcon(prayerRegenIcon, size);
@@ -151,11 +154,13 @@ class AlertIconProvider
 			case SCORPIA_LOW_PRAYER:
 			case SARACHNIS_LOW_PRAYER:
 			case SARA_LOW_PRAYER:
+			case EVERYWHERE_LOW_PRAYER:
 				if (prayerPotionIcon == null)
 					prayerPotionIcon = itemManager.getImage(ITEM_PRAYER_POTION_1, 1, false);
 				return scaleIcon(prayerPotionIcon, size);
 
 			case KBD_ANTIFIRE:
+			case EVERYWHERE_ANTIFIRE:
 				if (extAntifireIcon == null)
 					extAntifireIcon = itemManager.getImage(ITEM_EXT_ANTIFIRE_1, 1, false);
 				return scaleIcon(extAntifireIcon, size);

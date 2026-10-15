@@ -56,6 +56,9 @@ public interface PetBoostingQOLConfig extends Config
 	@ConfigSection(name = "Saradomin (Commander Zilyana)", description = "All Saradomin/Zilyana settings", position = 9, closedByDefault = true)
 	String saraSection = "sara";
 
+	@ConfigSection(name = "Everywhere", description = "Alerts that aren't tied to one boss, so you can turn on whichever ones you need wherever you are. Off by default.", position = 10, closedByDefault = true)
+	String everywhereSection = "everywhere";
+
 	// CORP
 
 	@Alpha
@@ -1545,5 +1548,189 @@ public interface PetBoostingQOLConfig extends Config
 	default Color saraProtMageOverlayColor()
 	{
 		return new Color(255, 255, 255, 80);
+	}
+
+	// EVERYWHERE
+
+	@ConfigItem(keyName = "everywhereSaturatedHeartEnabled", name = "Saturated Heart indicator",
+		description = "Show an alert anywhere when the Saturated Heart buff is not active (fires on entry and when buff expires)",
+		section = everywhereSection, position = 0)
+	default boolean everywhereSaturatedHeartEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereSaturatedIconEnabled", name = "Saturated Heart icon",
+		description = "Show the Saturated Heart item icon",
+		section = everywhereSection, position = 1)
+	default boolean everywhereSaturatedIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereSaturatedOverlayEnabled", name = "Saturated Heart overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = everywhereSection, position = 2)
+	default boolean everywhereSaturatedOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "everywhereSaturatedOverlayColor", name = "Saturated Heart overlay colour",
+		description = "Colour of the Saturated Heart overlay",
+		section = everywhereSection, position = 3)
+	default Color everywhereSaturatedOverlayColor()
+	{
+		return new Color(180, 100, 255, 100);
+	}
+
+	@ConfigItem(keyName = "everywherePrayerRegenEnabled", name = "Prayer Regen Potion indicator",
+		description = "Show an alert when the Prayer Regeneration Potion buff is not active",
+		section = everywhereSection, position = 4)
+	default boolean everywherePrayerRegenEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywherePrayerRegenIconEnabled", name = "Prayer Regen Potion icon",
+		description = "Show a Prayer Regeneration Potion icon",
+		section = everywhereSection, position = 5)
+	default boolean everywherePrayerRegenIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywherePrayerRegenOverlayEnabled", name = "Prayer Regen Potion overlay",
+		description = "Show a fullscreen colour overlay when the buff is not active",
+		section = everywhereSection, position = 6)
+	default boolean everywherePrayerRegenOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "everywherePrayerRegenOverlayColor", name = "Prayer Regen Potion overlay colour",
+		description = "Colour of the Prayer Regen Potion overlay",
+		section = everywhereSection, position = 7)
+	default Color everywherePrayerRegenOverlayColor()
+	{
+		return new Color(100, 255, 180, 100);
+	}
+
+	@ConfigItem(keyName = "everywhereLowPrayerEnabled", name = "Low prayer indicator",
+		description = "Show an alert when your prayer points fall below the threshold",
+		section = everywhereSection, position = 8)
+	default boolean everywhereLowPrayerEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereLowPrayerIconEnabled", name = "Low prayer icon",
+		description = "Show a Prayer Potion icon when prayer is low",
+		section = everywhereSection, position = 9)
+	default boolean everywhereLowPrayerIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereLowPrayerOverlayEnabled", name = "Low prayer overlay",
+		description = "Show a fullscreen colour overlay when prayer is low",
+		section = everywhereSection, position = 10)
+	default boolean everywhereLowPrayerOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "everywhereLowPrayerOverlayColor", name = "Low prayer overlay colour",
+		description = "Colour of the low prayer overlay",
+		section = everywhereSection, position = 11)
+	default Color everywhereLowPrayerOverlayColor()
+	{
+		return new Color(180, 180, 255, 100);
+	}
+
+	@ConfigItem(keyName = "everywherePrayerThreshold", name = "Prayer threshold",
+		description = "Show a prayer warning when prayer points fall below this number",
+		section = everywhereSection, position = 12)
+	default int everywherePrayerThreshold()
+	{
+		return 5;
+	}
+
+	@ConfigItem(keyName = "everywhereSpecEnabled", name = "Special attack 100% indicator",
+		description = "Show an alert when special attack energy is at 100%",
+		section = everywhereSection, position = 13)
+	default boolean everywhereSpecEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereSpecIconEnabled", name = "Special attack icon",
+		description = "Show the Energy Transfer spell icon when spec is at 100%",
+		section = everywhereSection, position = 14)
+	default boolean everywhereSpecIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereSpecOverlayEnabled", name = "Special attack overlay",
+		description = "Show a fullscreen colour overlay when spec is at 100%",
+		section = everywhereSection, position = 15)
+	default boolean everywhereSpecOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "everywhereSpecOverlayColor", name = "Special attack overlay colour",
+		description = "Colour of the 100% spec overlay",
+		section = everywhereSection, position = 16)
+	default Color everywhereSpecOverlayColor()
+	{
+		return new Color(255, 255, 100, 100);
+	}
+
+	@ConfigItem(keyName = "everywhereAntifireEnabled", name = "Extended Antifire indicator",
+		description = "Show an alert when Extended Antifire buff is not active (fires on entry and when buff expires)",
+		section = everywhereSection, position = 17)
+	default boolean everywhereAntifireEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereAntifireIconEnabled", name = "Extended Antifire icon",
+		description = "Show an Extended Antifire Potion icon",
+		section = everywhereSection, position = 18)
+	default boolean everywhereAntifireIconEnabled()
+	{
+		return false;
+	}
+
+	@ConfigItem(keyName = "everywhereAntifireOverlayEnabled", name = "Extended Antifire overlay",
+		description = "Show a fullscreen colour overlay when the antifire buff is not active",
+		section = everywhereSection, position = 19)
+	default boolean everywhereAntifireOverlayEnabled()
+	{
+		return false;
+	}
+
+	@Alpha
+	@ConfigItem(keyName = "everywhereAntifireOverlayColor", name = "Extended Antifire overlay colour",
+		description = "Colour of the antifire overlay",
+		section = everywhereSection, position = 20)
+	default Color everywhereAntifireOverlayColor()
+	{
+		return new Color(180, 80, 220, 100);
+	}
+
+	@ConfigItem(keyName = "everywhereMovementLockEnabled", name = "Movement lock",
+		description = "Consume walk clicks everywhere unless the hold-key set in the Corporeal Beast section "
+			+ "(Hold key to walk) is held",
+		section = everywhereSection, position = 21)
+	default boolean everywhereMovementLockEnabled()
+	{
+		return false;
 	}
 }

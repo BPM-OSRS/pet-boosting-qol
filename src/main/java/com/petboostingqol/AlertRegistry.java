@@ -93,6 +93,12 @@ final class AlertRegistry
 			if (config.saraProtMageEnabled() && plugin.saraProtMageWarn)          active.add(AlertType.SARA_PROT_MAGE);
 		}
 
+		if (config.everywhereSaturatedHeartEnabled() && plugin.everywhereSaturatedWarn)   active.add(AlertType.EVERYWHERE_SATURATED);
+		if (config.everywherePrayerRegenEnabled() && plugin.everywherePrayerRegenWarn)   active.add(AlertType.EVERYWHERE_PRAYER_REGEN);
+		if (config.everywhereLowPrayerEnabled() && plugin.everywhereLowPrayerWarn)       active.add(AlertType.EVERYWHERE_LOW_PRAYER);
+		if (config.everywhereSpecEnabled() && plugin.everywhereSpecWarn)                 active.add(AlertType.EVERYWHERE_SPEC);
+		if (config.everywhereAntifireEnabled() && plugin.everywhereAntifireWarn)         active.add(AlertType.EVERYWHERE_ANTIFIRE);
+
 		return active;
 	}
 
@@ -138,6 +144,11 @@ final class AlertRegistry
 			case SARA_LOW_PRAYER:     return config.saraLowPrayerOverlayEnabled();
 			case SARA_SPEC:           return config.saraSpecOverlayEnabled();
 			case SARA_PROT_MAGE:      return config.saraProtMageOverlayEnabled();
+			case EVERYWHERE_SATURATED:    return config.everywhereSaturatedOverlayEnabled();
+			case EVERYWHERE_PRAYER_REGEN: return config.everywherePrayerRegenOverlayEnabled();
+			case EVERYWHERE_LOW_PRAYER:   return config.everywhereLowPrayerOverlayEnabled();
+			case EVERYWHERE_SPEC:         return config.everywhereSpecOverlayEnabled();
+			case EVERYWHERE_ANTIFIRE:     return config.everywhereAntifireOverlayEnabled();
 			default:               return false;
 		}
 	}
@@ -184,6 +195,11 @@ final class AlertRegistry
 			case SARA_LOW_PRAYER:     return config.saraLowPrayerIconEnabled();
 			case SARA_SPEC:           return config.saraSpecIconEnabled();
 			case SARA_PROT_MAGE:      return config.saraProtMageIconEnabled();
+			case EVERYWHERE_SATURATED:    return config.everywhereSaturatedIconEnabled();
+			case EVERYWHERE_PRAYER_REGEN: return config.everywherePrayerRegenIconEnabled();
+			case EVERYWHERE_LOW_PRAYER:   return config.everywhereLowPrayerIconEnabled();
+			case EVERYWHERE_SPEC:         return config.everywhereSpecIconEnabled();
+			case EVERYWHERE_ANTIFIRE:     return config.everywhereAntifireIconEnabled();
 			default:               return false;
 		}
 	}
@@ -230,6 +246,11 @@ final class AlertRegistry
 			case SARA_LOW_PRAYER:     return config.saraLowPrayerOverlayColor();
 			case SARA_SPEC:           return config.saraSpecOverlayColor();
 			case SARA_PROT_MAGE:      return config.saraProtMageOverlayColor();
+			case EVERYWHERE_SATURATED:    return config.everywhereSaturatedOverlayColor();
+			case EVERYWHERE_PRAYER_REGEN: return config.everywherePrayerRegenOverlayColor();
+			case EVERYWHERE_LOW_PRAYER:   return config.everywhereLowPrayerOverlayColor();
+			case EVERYWHERE_SPEC:         return config.everywhereSpecOverlayColor();
+			case EVERYWHERE_ANTIFIRE:     return config.everywhereAntifireOverlayColor();
 			default:               return new Color(255, 0, 0, 100);
 		}
 	}
